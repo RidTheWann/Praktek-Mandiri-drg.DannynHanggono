@@ -82,23 +82,29 @@ export function serveStatic(app: Express) {
     
     // Jika masih tidak ditemukan, coba lokasi absolut di Vercel
     if (!fs.existsSync(distPath)) {
+      // Coba lokasi langsung di /dist/public (untuk Vercel)
       distPath = path.resolve("/", "dist", "public");
       
-      // Jika masih tidak ditemukan, gunakan lokasi default
+      // Jika masih tidak ditemukan, coba lokasi di root project
       if (!fs.existsSync(distPath)) {
-        console.log(`Mencoba mencari direktori build di beberapa lokasi:`);
-        console.log(`- ${path.resolve(import.meta.dirname, "public")}`);
-        console.log(`- ${path.resolve(import.meta.dirname, "..", "dist", "public")}`);
-        console.log(`- ${path.resolve("/", "dist", "public")}`);
-        throw new Error(
-          `Could not find the build directory. Make sure to build the client first.`,
-        );
+        distPath = path.resolve(import.meta.dirname, "..", "public");
+        
+        if (!fs.existsSync(distPath)) {
+          console.log(`Mencoba mencari direktori build di beberapa lokasi:`);
+          console.log(`- ${path.resolve(import.meta.dirname, "public")}`);
+          console.log(`- ${path.resolve(import.meta.dirname, "..", "dist", "public")}`);
+          console.log(`- ${path.resolve("/", "dist", "public")}`);
+          console.log(`- ${path.resolve(import.meta.dirname, "..", "public")}`);
+          throw new Error(
+            `Could not find the build directory. Make sure to build the client first.`,
+          );
+        }
       }
     }
   }
   
   console.log(`Menggunakan direktori build: ${distPath}`);
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, { maxAge: '1y', immutable: true }));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
