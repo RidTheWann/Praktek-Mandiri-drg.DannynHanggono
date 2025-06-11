@@ -1,15 +1,47 @@
 import { type User, type InsertUser, type DataEntry, type InsertDataEntry } from "../shared/schema";
-import { Pool } from "pg";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { Pool, PoolClient } from "pg";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
+  ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
-  }
+  } : false,
+  max: 20, // maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // how long a client is allowed to remain idle before being closed
+  connectionTimeoutMillis: 2000, // how long to wait when connecting a new client
 });
+
+pool.on('error', (err) => {
+  console.error('[Database] Unexpected error on idle client', {
+    message: err.message,
+    stack: err.stack,
+    time: new Date().toISOString()
+  });
+});
+
+pool.on('connect', () => {
+  console.log('[Database] New client connected', {
+    time: new Date().toISOString(),
+    poolSize: (pool as any).totalCount,
+    waiting: (pool as any).waitingCount
+  });
+});
+
+// Add connection testing function
+async function testConnection() {
+  try {
+    const client = await pool.connect();
+    console.log('Database connection successful');
+    client.release();
+    return true;
+  } catch (err) {
+    console.error('Database connection error:', err);
+    return false;
+  }
+}
+
+// Test connection on startup
+testConnection();
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -24,6 +56,22 @@ export interface IStorage {
 }
 
 class PostgresStorage implements IStorage {
+  private async withConnection<T>(operation: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await pool.connect();
+    try {
+      return await operation(client);
+    } catch (error: any) {
+      console.error('[Database] Operation failed', {
+        error: error.message,
+        stack: error.stack,
+        time: new Date().toISOString()
+      });
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     try {
       const result = await pool.query(
@@ -88,15 +136,12 @@ class PostgresStorage implements IStorage {
   }
 
   async getDataEntries(): Promise<DataEntry[]> {
-    try {
-      const result = await pool.query(
-        'SELECT * FROM data_entries ORDER BY created_at DESC'
+    return this.withConnection(async (client) => {
+      const result = await client.query(
+        'SELECT * FROM data_entries ORDER BY date DESC'
       );
-      return result.rows.map(this.mapDataEntryFromDb);
-    } catch (error) {
-      console.error("Error in getDataEntries:", error);
-      return [];
-    }
+      return result.rows;
+    });
   }
 
   async getDataEntryById(id: number): Promise<DataEntry | undefined> {
@@ -113,16 +158,13 @@ class PostgresStorage implements IStorage {
   }
 
   async getDataEntriesByDateRange(startDate: string, endDate: string): Promise<DataEntry[]> {
-    try {
-      const result = await pool.query(
-        'SELECT * FROM data_entries WHERE date >= $1 AND date <= $2 ORDER BY created_at DESC',
+    return this.withConnection(async (client) => {
+      const result = await client.query(
+        'SELECT * FROM data_entries WHERE date >= $1 AND date <= $2 ORDER BY date DESC',
         [startDate, endDate]
       );
-      return result.rows.map(this.mapDataEntryFromDb);
-    } catch (error) {
-      console.error("Error in getDataEntriesByDateRange:", error);
-      return [];
-    }
+      return result.rows;
+    });
   }
 
   async updateDataEntry(id: number, updateData: Partial<InsertDataEntry>): Promise<DataEntry | undefined> {

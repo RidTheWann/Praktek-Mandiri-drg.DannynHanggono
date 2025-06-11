@@ -1,23 +1,39 @@
-import { storage } from "./storage";
+import { storage } from './storage.js';
+import { z } from 'zod';
+import type { Request, Response } from 'express';
 
-export default async function handler(req: any, res: any) {
+const querySchema = z.object({
+  date: z.string().optional()
+});
+
+export default async function handler(req: Request, res: Response) {
   try {
-    // Mendukung filter berdasarkan tanggal jika ada query date
     if (req.method === "GET") {
-      if (req.query && req.query.date) {
-        // Jika ada query date, ambil data untuk tanggal tersebut saja
-        const entries = await storage.getDataEntriesByDateRange(req.query.date, req.query.date);
-        res.json(entries);
-      } else {
-        // Jika tidak ada query date, ambil semua data
-        const entries = await storage.getDataEntries();
-        res.json(entries);
+      const query = querySchema.safeParse(req.query);
+      
+      if (!query.success) {
+        return res.status(400).json({ error: "Invalid query parameters" });
       }
-    } else {
-      res.status(405).json({ error: "Method Not Allowed" });
+
+      if (query.data.date) {
+        const entries = await storage.getDataEntriesByDateRange(query.data.date, query.data.date);
+        return res.json(entries);
+      } else {
+        const entries = await storage.getDataEntries();
+        return res.json(entries);
+      }
     }
+
+    return res.status(405).json({ error: "Method Not Allowed" });
   } catch (err: any) {
-    console.error("[daily-visits] API error:", err);
-    res.status(500).json({ error: 'Internal Server Error', details: err?.message || err, stack: err?.stack });
+    console.error("[daily-visits] API error:", {
+      message: err?.message,
+      stack: err?.stack,
+      query: req.query
+    });
+    return res.status(500).json({ 
+      error: 'Internal Server Error', 
+      details: err?.message || String(err)
+    });
   }
 }

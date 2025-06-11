@@ -1,50 +1,64 @@
-import { storage } from "./storage";
+import { storage } from './storage.js';
+import type { Request, Response } from 'express';
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: Request, res: Response) {
   try {
-    if (req.method === "GET") {
-      // Ambil semua data entries
-      const entries = await storage.getDataEntries();
-      // Hitung statistik
-      const maleMonthly = entries.filter(e => e.gender?.toLowerCase() === "laki-laki").length;
-      const femaleMonthly = entries.filter(e => e.gender?.toLowerCase() === "perempuan").length;
-      const totalPatients = entries.length;
-      const bpjsCount = entries.filter(e => e.paymentType === "BPJS").length;
-      const umumCount = entries.filter(e => e.paymentType === "UMUM").length;
-      // Hitung daily average (rata-rata per hari)
-      const dateMap: Record<string, number> = {};
-      entries.forEach(e => {
-        dateMap[e.date] = (dateMap[e.date] || 0) + 1;
-      });
-      const dailyAverage = Object.values(dateMap).length > 0 ? Math.round(entries.length / Object.values(dateMap).length) : 0;
-      // Traffic data (per tanggal)
-      const trafficData = Object.entries(dateMap).map(([date, count]) => {
-        const males = entries.filter(e => e.date === date && e.gender?.toLowerCase() === "laki-laki").length;
-        const females = entries.filter(e => e.date === date && e.gender?.toLowerCase() === "perempuan").length;
-        return { date, male: males, female: females };
-      });
-      // Distribusi tindakan
-      const actionDistribution: Record<string, number> = {};
-      entries.forEach(e => {
-        (e.actions || []).forEach(action => {
-          actionDistribution[action] = (actionDistribution[action] || 0) + 1;
-        });
-      });
-      res.json({
-        maleMonthly,
-        femaleMonthly,
-        dailyAverage,
-        bpjsCount,
-        umumCount,
-        totalPatients,
-        trafficData,
-        actionDistribution
-      });
-    } else {
-      res.status(405).json({ error: "Method Not Allowed" });
+    if (req.method !== "GET") {
+      return res.status(405).json({ error: "Method Not Allowed" });
     }
+
+    // Fetch all data entries
+    const entries = await storage.getDataEntries();
+
+    // Calculate statistics with null checks
+    const statistics = {
+      gender: {
+        male: entries.filter(e => e.gender?.toLowerCase() === "laki-laki").length,
+        female: entries.filter(e => e.gender?.toLowerCase() === "perempuan").length
+      },
+      total: entries.length,
+      paymentType: {
+        bpjs: entries.filter(e => e.paymentType === "BPJS").length,
+        umum: entries.filter(e => e.paymentType === "UMUM").length
+      },
+      dailyStats: {} as Record<string, number>
+    };
+
+    // Calculate daily statistics
+    entries.forEach(e => {
+      if (e.date) {
+        statistics.dailyStats[e.date] = (statistics.dailyStats[e.date] || 0) + 1;
+      }
+    });
+
+    const uniqueDays = Object.keys(statistics.dailyStats).length;
+    const dailyAverage = uniqueDays > 0 ? Math.round(entries.length / uniqueDays) : 0;
+
+    // Traffic data (by date)
+    const trafficData = Object.entries(statistics.dailyStats)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return res.json({
+      gender: statistics.gender,
+      totalPatients: statistics.total,
+      paymentTypes: statistics.paymentType,
+      dailyAverage,
+      trafficData,
+      metadata: {
+        uniqueDays,
+        lastUpdated: new Date().toISOString()
+      }
+    });
   } catch (err: any) {
-    console.error("[statistics] API error:", err);
-    res.status(500).json({ error: 'Internal Server Error', details: err?.message || err, stack: err?.stack });
+    console.error("[statistics] API error:", {
+      message: err?.message,
+      stack: err?.stack,
+      time: new Date().toISOString()
+    });
+    return res.status(500).json({ 
+      error: 'Internal Server Error', 
+      details: err?.message || String(err)
+    });
   }
 }
