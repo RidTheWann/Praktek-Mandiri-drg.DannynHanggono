@@ -16,7 +16,7 @@ const tasks: TaskCard[] = [
     id: 1,
     title: "Survey Kessan BPJS",
     description: "Survey kepuasan pelayanan kesehatan BPJS Kesehatan",
-    image: "/src/assets/Kessan.jpg",
+    image: "/assets/Kessan.jpg",
     url: "https://kesan.bpjs-kesehatan.go.id/kessan/survey/search/ew0KImtkcHBrIjogIjAxNTdHMDA3IiwNCiJubXBwayI6ICIgZHJnLiBEYW5ueSBIYW5nZ29ubyIsDQoia2RkYXRpMiI6ICIwMTU3Ig0KfQ",
     taskNumber: "Survey 1"
   },
@@ -24,7 +24,7 @@ const tasks: TaskCard[] = [
     id: 2,
     title: "Survey Kepuasan Pasien",
     description: "Survey kepuasan pasien Kementerian Kesehatan",
-    image: "/src/assets/Kepuasan.png",
+    image: "/assets/Kepuasan.png",
     url: "https://mutufasyankes.kemkes.go.id/halaman/survei_kepuasan_pasien/0902612912",
     taskNumber: "Survey 2"
   }

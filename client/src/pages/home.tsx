@@ -35,7 +35,7 @@ export default function Home() {
         >
           <div className="mb-8 rounded-2xl overflow-hidden shadow-2xl max-w-4xl mx-auto">
             <img 
-              src="/src/assets/Praktek.png" 
+              src="/assets/Praktek.png" 
               alt="Praktek Mandiri drg. Danny Hanggono" 
               className="w-full h-auto max-h-[400px] sm:max-h-[450px] md:max-h-[500px] object-cover object-center transform hover:scale-102 transition-transform duration-500"
             />
