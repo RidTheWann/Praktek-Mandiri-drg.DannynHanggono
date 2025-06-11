@@ -4,12 +4,15 @@
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": { "includeFiles": ["client/**", "dist/public/**"] }
+      "config": { 
+        "distDir": "dist",
+        "buildCommand": "npm run vercel-build"
+      }
     },
     {
       "src": "server/index.ts",
       "use": "@vercel/node",
-      "config": { "includeFiles": ["dist/index.js", "dist/public/**"] }
+      "config": { "includeFiles": ["dist/index.js"] }
     }
   ],
   "routes": [
@@ -18,8 +21,13 @@
       "dest": "server/index.ts"
     },
     {
+      "src": "/assets/(.*)",
+      "headers": { "cache-control": "s-maxage=31536000,immutable" },
+      "dest": "/assets/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "client/index.html"
+      "dest": "/index.html"
     }
   ]
 }
