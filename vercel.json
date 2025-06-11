@@ -3,30 +3,17 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "includeFiles": ["client/**", "dist/public/**"] }
+      "use": "@vercel/static-build"
     },
     {
       "src": "dist/index.js",
-      "use": "@vercel/node",
-      "config": { "includeFiles": ["dist/index.js", "dist/public/**", "dist/server/**"] }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "dist/index.js" },
-    {
-      "src": "/assets/(.*)",
-      "headers": { "cache-control": "s-maxage=31536000,immutable" },
-      "dest": "/dist/public/assets/$1"
-    },
-    {
-      "src": "/src/(.*)",
-      "headers": { "cache-control": "s-maxage=31536000,immutable" },
-      "dest": "/dist/public/src/$1"
-    },
-    {
-      "src": "/(?!api/)(.*)",
-      "dest": "/dist/public/index.html"
-    }
+    { "src": "/assets/(.*)", "dest": "/dist/public/assets/$1" },
+    { "src": "/src/(.*)", "dest": "/dist/public/src/$1" },
+    { "src": "/(.*)", "dest": "/dist/public/index.html" }
   ]
 }
