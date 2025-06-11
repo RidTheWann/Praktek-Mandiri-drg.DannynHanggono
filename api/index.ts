@@ -1,6 +1,6 @@
 // Vercel API handler: create and export an Express app with all routes registered
 import express from 'express';
-import { registerRoutes } from '../server/routes';
+import { registerRoutes } from './routes';
 
 const app = express();
 app.use(express.json());
