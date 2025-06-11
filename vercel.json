@@ -14,9 +14,6 @@
   ],
   "routes": [
     {
-      "handle": "filesystem"
-    },
-    {
       "src": "/api/(.*)",
       "dest": "server/index.ts"
     },
@@ -26,12 +23,13 @@
       "dest": "/dist/public/assets/$1"
     },
     {
-      "src": "/favicon.ico",
-      "dest": "/dist/public/favicon.ico"
+      "src": "/src/(.*)",
+      "headers": { "cache-control": "s-maxage=31536000,immutable" },
+      "dest": "/dist/public/src/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "server/index.ts"
+      "src": "/(?!api/)(.*)",
+      "dest": "/dist/public/index.html"
     }
   ]
 }
