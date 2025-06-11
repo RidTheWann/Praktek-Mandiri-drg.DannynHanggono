@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import { ClipboardList, TrendingUp, CheckSquare, Plus, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
+import PraktekImg from '@/assets/Praktek.png';
 
 export default function Home() {
   const features = [
@@ -35,7 +36,7 @@ export default function Home() {
         >
           <div className="mb-8 rounded-2xl overflow-hidden shadow-2xl max-w-4xl mx-auto">
             <img 
-              src="/assets/Praktek.png" 
+              src={PraktekImg} 
               alt="Praktek Mandiri drg. Danny Hanggono" 
               className="w-full h-auto max-h-[400px] sm:max-h-[450px] md:max-h-[500px] object-cover object-center transform hover:scale-102 transition-transform duration-500"
             />

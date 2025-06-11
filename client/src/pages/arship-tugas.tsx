@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { ExternalLink } from "lucide-react";
+import KessanImg from '@/assets/Kessan.jpg';
+import KepuasanImg from '@/assets/Kepuasan.png';
 
 interface TaskCard {
   id: number;
@@ -16,7 +18,7 @@ const tasks: TaskCard[] = [
     id: 1,
     title: "Survey Kessan BPJS",
     description: "Survey kepuasan pelayanan kesehatan BPJS Kesehatan",
-    image: "/assets/Kessan.jpg",
+    image: KessanImg,
     url: "https://kesan.bpjs-kesehatan.go.id/kessan/survey/search/ew0KImtkcHBrIjogIjAxNTdHMDA3IiwNCiJubXBwayI6ICIgZHJnLiBEYW5ueSBIYW5nZ29ubyIsDQoia2RkYXRpMiI6ICIwMTU3Ig0KfQ",
     taskNumber: "Survey 1"
   },
@@ -24,7 +26,7 @@ const tasks: TaskCard[] = [
     id: 2,
     title: "Survey Kepuasan Pasien",
     description: "Survey kepuasan pasien Kementerian Kesehatan",
-    image: "/assets/Kepuasan.png",
+    image: KepuasanImg,
     url: "https://mutufasyankes.kemkes.go.id/halaman/survei_kepuasan_pasien/0902612912",
     taskNumber: "Survey 2"
   }
