@@ -23,7 +23,7 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true as true,
+    allowedHosts: true,
   };
 
   const vite = await createViteServer({
@@ -36,7 +36,11 @@ export async function setupVite(app: Express, server: Server) {
         process.exit(1);
       },
     },
-    server: serverOptions,
+    server: {
+      middlewareMode: true,
+      hmr: { server },
+      allowedHosts: true,
+    },
     appType: "custom",
   });
 
@@ -56,7 +60,7 @@ export async function setupVite(app: Express, server: Server) {
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`
+        `src="/src/main.tsx?v=${nanoid()}"`,
       );
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
@@ -68,19 +72,33 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "../dist");
-
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`
-    );
-  }
-
-  // Serve static files from dist directory
-  app.use(express.static(distPath));
+  // Coba beberapa kemungkinan lokasi direktori build
+  let distPath = path.resolve(import.meta.dirname, "public");
   
-  // Explicitly serve files from src/assets to match development paths
-  app.use("/src/assets", express.static(path.resolve(distPath, "src/assets")));
+  // Jika direktori tidak ditemukan, coba lokasi alternatif untuk Vercel
+  if (!fs.existsSync(distPath)) {
+    // Coba lokasi relatif terhadap root project
+    distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
+    
+    // Jika masih tidak ditemukan, coba lokasi absolut di Vercel
+    if (!fs.existsSync(distPath)) {
+      distPath = path.resolve("/", "dist", "public");
+      
+      // Jika masih tidak ditemukan, gunakan lokasi default
+      if (!fs.existsSync(distPath)) {
+        console.log(`Mencoba mencari direktori build di beberapa lokasi:`);
+        console.log(`- ${path.resolve(import.meta.dirname, "public")}`);
+        console.log(`- ${path.resolve(import.meta.dirname, "..", "dist", "public")}`);
+        console.log(`- ${path.resolve("/", "dist", "public")}`);
+        throw new Error(
+          `Could not find the build directory. Make sure to build the client first.`,
+        );
+      }
+    }
+  }
+  
+  console.log(`Menggunakan direktori build: ${distPath}`);
+  app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
