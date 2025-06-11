@@ -6,12 +6,14 @@
       "use": "@vercel/static-build"
     },
     {
-      "src": "api/index.ts",
+      "src": "api/*.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "api/index.ts" },
+    { "src": "/api/daily-visits", "dest": "api/daily-visits.ts" },
+    { "src": "/api/data-entries", "dest": "api/data-entries.ts" },
+    { "src": "/api/statistics", "dest": "api/statistics.ts" },
     { "src": "/assets/(.*)", "dest": "/dist/assets/$1" },
     { "src": "/(.*)", "dest": "/dist/index.html" }
   ]
