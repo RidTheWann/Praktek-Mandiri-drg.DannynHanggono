@@ -82,7 +82,14 @@ export default function Dashboard() {
 
   const { data: dailyVisits, isLoading: isLoadingVisits } = useQuery<DataEntry[]>({
     queryKey: ["/api/daily-visits", selectedDate],
-    queryFn: () => apiRequest("GET", `/api/daily-visits?date=${selectedDate}`).then(res => res.json()),
+    queryFn: () => apiRequest("GET", `/api/daily-visits?date=${selectedDate}`)
+      .then(res => res.json())
+      .then(data => {
+        // Sort by createdAt in descending order (newest first)
+        return Array.isArray(data) ? 
+          [...data].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()) : 
+          [];
+      }),
     refetchInterval: 2000, // Refresh every 2 seconds for better real-time updates
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -239,15 +246,18 @@ export default function Dashboard() {
     });
   }
   const pieChartData = stats?.actionDistribution ?
-    Object.entries(stats.actionDistribution)
-      .reduce((acc, [key, value]) => {
+    Array.from(
+      Object.entries(stats.actionDistribution).reduce((uniqueData, [key, value]) => {
         const name = actionLabels[key] || key;
-        // Pastikan hanya satu entry per tindakan (hilangkan duplikat)
-        if (!acc.some(item => item.name === name)) {
-          acc.push({ name, value });
+        // If this name already exists, add the value to it, otherwise create a new entry
+        if (uniqueData.has(name)) {
+          uniqueData.set(name, uniqueData.get(name)! + value);
+        } else {
+          uniqueData.set(name, value);
         }
-        return acc;
-      }, [] as { name: string, value: number }[])
+        return uniqueData;
+      }, new Map<string, number>())
+    ).map(([name, value]) => ({ name, value }))
     : [];
 
   const paymentPieData = [
@@ -255,8 +265,7 @@ export default function Dashboard() {
     { name: 'UMUM', value: stats?.paymentTypes?.umum || 0 }
   ];
 
-  // Deklarasi sortedDailyVisits sebelum digunakan di render
-  const sortedDailyVisits: DataEntry[] = (dailyVisits || []).slice().sort((a, b) => Number(b.id) - Number(a.id));
+  // Tidak perlu mendeklarasikan sortedDailyVisits karena data sudah diurutkan di queryFn
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -343,7 +352,7 @@ export default function Dashboard() {
                   {/* Table Content */}
                   <div className="space-y-2 max-h-[400px] overflow-y-auto">
                     {/* Tipe data untuk visit dan index pada map */}
-                    {sortedDailyVisits.map((visit: DataEntry, index: number) => (
+                    {dailyVisits?.map((visit: DataEntry, index: number) => (
                       <div
                         key={visit.id}
                         className="grid grid-cols-7 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors items-center min-w-[800px]"

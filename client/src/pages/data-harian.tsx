@@ -62,28 +62,34 @@ export default function DataHarian() {
     const editId = searchParams.get("edit");
     if (editId) {
       setIsEditMode(true);
-      // Fetch entry by ID from API
-      apiRequest("GET", `/api/data-entries/${editId}`)
+      // Fetch all entries first to find the specific entry by ID
+      apiRequest("GET", "/api/data-entries")
         .then(res => res.json())
-        .then(entry => {
-          if (entry) {
-            form.reset({
-              date: entry.date,
-              patientName: entry.patientName,
-              medicalRecordNumber: entry.medicalRecordNumber,
-              gender: entry.gender,
-              paymentType: entry.paymentType,
-              actions: entry.actions || [],
-              otherActions: entry.otherActions || "",
-              description: entry.description || "",
-            });
-            setOriginalIdentifiers({
-              date: entry.date,
-              patientName: entry.patientName,
-              medicalRecordNumber: entry.medicalRecordNumber,
-            });
+        .then(entries => {
+          if (Array.isArray(entries)) {
+            const entry = entries.find(e => e.id === parseInt(editId));
+            if (entry) {
+              form.reset({
+                date: entry.date,
+                patientName: entry.patientName,
+                medicalRecordNumber: entry.medicalRecordNumber,
+                gender: entry.gender,
+                paymentType: entry.paymentType,
+                actions: entry.actions || [],
+                otherActions: entry.otherActions || "",
+                description: entry.description || "",
+              });
+              setOriginalIdentifiers({
+                date: entry.date,
+                patientName: entry.patientName,
+                medicalRecordNumber: entry.medicalRecordNumber,
+              });
+            } else {
+              toast({ title: "Error", description: "Data yang ingin diedit tidak ditemukan", variant: "destructive" });
+              navigate("/data-harian");
+            }
           } else {
-            toast({ title: "Error", description: "Data tidak ditemukan", variant: "destructive" });
+            toast({ title: "Error", description: "Format data tidak valid", variant: "destructive" });
             navigate("/data-harian");
           }
         })

@@ -221,7 +221,7 @@ export default function SearchPatient() {
                             {entry.medicalRecordNumber}
                           </div>
                           <div className="flex flex-wrap gap-1 max-w-[120px]">
-                            {entry.actions.map((action, index) => (
+                            {Array.isArray(entry.actions) && entry.actions.map((action, index) => (
                               <Badge key={index} variant="secondary" className="text-xs mb-1">
                                 {actionLabels[action] || action}
                               </Badge>
