@@ -47,7 +47,7 @@ export async function getAllEntries() {
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
       paymentType: row.payment_type,
-      actions: row.actions,
+      actions: typeof row.actions === 'string' ? JSON.parse(row.actions) : row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
       createdAt: row.created_at ? row.created_at.toISOString() : null
@@ -74,7 +74,7 @@ export async function getEntriesByDateRange(startDate, endDate) {
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
       paymentType: row.payment_type,
-      actions: row.actions,
+      actions: typeof row.actions === 'string' ? JSON.parse(row.actions) : row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
       createdAt: row.created_at ? row.created_at.toISOString() : null
@@ -103,7 +103,7 @@ export async function addEntry(entry) {
       entry.medicalRecordNumber,
       entry.gender,
       entry.paymentType,
-      entry.actions,
+      JSON.stringify(entry.actions), // Fix: store as JSON string for jsonb column
       entry.otherActions || '',
       entry.description || ''
     ]);
@@ -116,7 +116,7 @@ export async function addEntry(entry) {
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
       paymentType: row.payment_type,
-      actions: row.actions,
+      actions: typeof row.actions === 'string' ? JSON.parse(row.actions) : row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
       createdAt: row.created_at ? row.created_at.toISOString() : null
@@ -149,7 +149,7 @@ export async function updateEntry(id, entry) {
       entry.medicalRecordNumber,
       entry.gender,
       entry.paymentType,
-      entry.actions,
+      JSON.stringify(entry.actions), // Fix: store as JSON string for jsonb column
       entry.otherActions || '',
       entry.description || '',
       id
@@ -167,7 +167,7 @@ export async function updateEntry(id, entry) {
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
       paymentType: row.payment_type,
-      actions: row.actions,
+      actions: typeof row.actions === 'string' ? JSON.parse(row.actions) : row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
       createdAt: row.created_at ? row.created_at.toISOString() : null
@@ -199,7 +199,7 @@ export async function deleteEntry(id) {
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
       paymentType: row.payment_type,
-      actions: row.actions,
+      actions: typeof row.actions === 'string' ? JSON.parse(row.actions) : row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
       createdAt: row.created_at ? row.created_at.toISOString() : null
