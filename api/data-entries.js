@@ -4,7 +4,10 @@ import { z } from 'zod';
 
 const querySchema = z.object({
   startDate: z.string().optional(),
-  endDate: z.string().optional()
+  endDate: z.string().optional(),
+  name: z.string().optional(),
+  medicalRecord: z.string().optional(),
+  action: z.string().optional()
 });
 
 // Enable CORS middleware
@@ -39,17 +42,26 @@ export default async function handler(req, res) {
       if (!query.success) {
         return res.status(400).json({ error: "Invalid query parameters" });
       }
-      
+      let entries = [];
       if (query.data.startDate && query.data.endDate) {
-        const entries = await combinedStorage.getDataEntriesByDateRange(
+        entries = await combinedStorage.getDataEntriesByDateRange(
           query.data.startDate, 
           query.data.endDate
         );
-        return res.json(entries);
       } else {
-        const entries = await combinedStorage.getDataEntries();
-        return res.json(entries);
+        entries = await combinedStorage.getDataEntries();
       }
+      // Filter by name, medicalRecord, action
+      if (query.data.name) {
+        entries = entries.filter(e => e.patientName && e.patientName.toLowerCase().includes(query.data.name.toLowerCase()));
+      }
+      if (query.data.medicalRecord) {
+        entries = entries.filter(e => e.medicalRecordNumber && e.medicalRecordNumber.toLowerCase().includes(query.data.medicalRecord.toLowerCase()));
+      }
+      if (query.data.action) {
+        entries = entries.filter(e => Array.isArray(e.actions) && e.actions.includes(query.data.action));
+      }
+      return res.json(entries);
     }
     
     // POST - Create new entry

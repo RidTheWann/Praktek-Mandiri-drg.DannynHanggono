@@ -53,48 +53,61 @@ export default async function handler(req, res) {
     
     // Calculate statistics
     const totalPatients = entries.length;
-    
-    // Count by gender
-    const genderCounts = entries.reduce((acc, entry) => {
-      const gender = entry.gender || 'Unknown';
-      acc[gender] = (acc[gender] || 0) + 1;
-      return acc;
-    }, {});
-    
-    // Count by payment type
-    const paymentCounts = entries.reduce((acc, entry) => {
-      const paymentType = entry.paymentType || 'Unknown';
-      acc[paymentType] = (acc[paymentType] || 0) + 1;
-      return acc;
-    }, {});
-    
-    // Count by action
-    const actionCounts = entries.reduce((acc, entry) => {
+
+    // Gender distribution
+    const gender = { male: 0, female: 0 };
+    entries.forEach(entry => {
+      if (entry.gender && entry.gender.toLowerCase().includes('laki')) gender.male++;
+      else if (entry.gender && entry.gender.toLowerCase().includes('perempuan')) gender.female++;
+    });
+
+    // Payment type distribution
+    const paymentTypes = { bpjs: 0, umum: 0 };
+    entries.forEach(entry => {
+      if (entry.paymentType && entry.paymentType.toUpperCase() === 'BPJS') paymentTypes.bpjs++;
+      else if (entry.paymentType && entry.paymentType.toUpperCase() === 'UMUM') paymentTypes.umum++;
+    });
+
+    // Action distribution
+    const actionDistribution = {};
+    entries.forEach(entry => {
       if (Array.isArray(entry.actions)) {
         entry.actions.forEach(action => {
-          acc[action] = (acc[action] || 0) + 1;
+          actionDistribution[action] = (actionDistribution[action] || 0) + 1;
         });
       }
-      return acc;
-    }, {});
-    
-    // Count by date
-    const dateCounts = entries.reduce((acc, entry) => {
-      const date = entry.date || 'Unknown';
-      acc[date] = (acc[date] || 0) + 1;
-      return acc;
-    }, {});
-    
+    });
+
+    // Traffic data (by date, gender)
+    const trafficDataMap = {};
+    entries.forEach(entry => {
+      if (!entry.date) return;
+      if (!trafficDataMap[entry.date]) trafficDataMap[entry.date] = { date: entry.date, male: 0, female: 0 };
+      if (entry.gender && entry.gender.toLowerCase().includes('laki')) trafficDataMap[entry.date].male++;
+      else if (entry.gender && entry.gender.toLowerCase().includes('perempuan')) trafficDataMap[entry.date].female++;
+    });
+    const trafficData = Object.values(trafficDataMap).sort((a, b) => a.date.localeCompare(b.date));
+
+    // Daily average
+    const uniqueDays = Object.keys(trafficDataMap).length;
+    const dailyAverage = uniqueDays > 0 ? Math.round(totalPatients / uniqueDays) : 0;
+
+    // Metadata
+    const metadata = {
+      uniqueDays,
+      lastUpdated: new Date().toISOString()
+    };
+
     return res.json({
+      gender,
       totalPatients,
-      genderCounts,
-      paymentCounts,
-      actionCounts,
-      dateCounts,
-      timeframe: {
-        startDate: query.data.startDate || 'all',
-        endDate: query.data.endDate || 'all'
-      }
+      paymentTypes,
+      bpjsCount: paymentTypes.bpjs,
+      umumCount: paymentTypes.umum,
+      dailyAverage,
+      trafficData,
+      actionDistribution,
+      metadata
     });
   } catch (err) {
     console.error("[statistics] API error:", {
