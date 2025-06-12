@@ -42,7 +42,7 @@ export async function getAllEntries() {
     `);
     return result.rows.map(row => ({
       id: row.id,
-      date: row.date.toISOString().split('T')[0],
+      date: row.date ? row.date.toISOString().split('T')[0] : null,
       patientName: row.patient_name,
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
@@ -50,7 +50,7 @@ export async function getAllEntries() {
       actions: row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
-      createdAt: row.created_at.toISOString()
+      createdAt: row.created_at ? row.created_at.toISOString() : null
     }));
   } catch (error) {
     console.error('Error getting entries:', error);
@@ -69,7 +69,7 @@ export async function getEntriesByDateRange(startDate, endDate) {
     
     return result.rows.map(row => ({
       id: row.id,
-      date: row.date.toISOString().split('T')[0],
+      date: row.date ? row.date.toISOString().split('T')[0] : null,
       patientName: row.patient_name,
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
@@ -77,7 +77,7 @@ export async function getEntriesByDateRange(startDate, endDate) {
       actions: row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
-      createdAt: row.created_at.toISOString()
+      createdAt: row.created_at ? row.created_at.toISOString() : null
     }));
   } catch (error) {
     console.error('Error getting entries by date range:', error);
@@ -111,7 +111,7 @@ export async function addEntry(entry) {
     const row = result.rows[0];
     return {
       id: row.id,
-      date: row.date.toISOString().split('T')[0],
+      date: row.date ? row.date.toISOString().split('T')[0] : null,
       patientName: row.patient_name,
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
@@ -119,7 +119,7 @@ export async function addEntry(entry) {
       actions: row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
-      createdAt: row.created_at.toISOString()
+      createdAt: row.created_at ? row.created_at.toISOString() : null
     };
   } catch (error) {
     console.error('Error adding entry:', error);
@@ -162,7 +162,7 @@ export async function updateEntry(id, entry) {
     const row = result.rows[0];
     return {
       id: row.id,
-      date: row.date.toISOString().split('T')[0],
+      date: row.date ? row.date.toISOString().split('T')[0] : null,
       patientName: row.patient_name,
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
@@ -170,7 +170,7 @@ export async function updateEntry(id, entry) {
       actions: row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
-      createdAt: row.created_at.toISOString()
+      createdAt: row.created_at ? row.created_at.toISOString() : null
     };
   } catch (error) {
     console.error('Error updating entry:', error);
@@ -194,7 +194,7 @@ export async function deleteEntry(id) {
     const row = result.rows[0];
     return {
       id: row.id,
-      date: row.date.toISOString().split('T')[0],
+      date: row.date ? row.date.toISOString().split('T')[0] : null,
       patientName: row.patient_name,
       medicalRecordNumber: row.medical_record_number,
       gender: row.gender,
@@ -202,7 +202,7 @@ export async function deleteEntry(id) {
       actions: row.actions,
       otherActions: row.other_actions || '',
       description: row.description || '',
-      createdAt: row.created_at.toISOString()
+      createdAt: row.created_at ? row.created_at.toISOString() : null
     };
   } catch (error) {
     console.error('Error deleting entry:', error);
