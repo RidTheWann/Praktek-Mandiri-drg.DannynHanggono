@@ -6,6 +6,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { CalendarPlus, Save, RotateCcw } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,9 +52,48 @@ export default function DataHarian() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Mode edit telah dihapus
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalIdentifiers, setOriginalIdentifiers] = useState<any>(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  // Fungsi edit telah dihapus
+  // Fetch data for edit mode
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      setIsEditMode(true);
+      // Fetch entry by ID from API
+      apiRequest("GET", `/api/data-entries/${editId}`)
+        .then(res => res.json())
+        .then(entry => {
+          if (entry) {
+            form.reset({
+              date: entry.date,
+              patientName: entry.patientName,
+              medicalRecordNumber: entry.medicalRecordNumber,
+              gender: entry.gender,
+              paymentType: entry.paymentType,
+              actions: entry.actions || [],
+              otherActions: entry.otherActions || "",
+              description: entry.description || "",
+            });
+            setOriginalIdentifiers({
+              date: entry.date,
+              patientName: entry.patientName,
+              medicalRecordNumber: entry.medicalRecordNumber,
+            });
+          } else {
+            toast({ title: "Error", description: "Data tidak ditemukan", variant: "destructive" });
+            navigate("/data-harian");
+          }
+        })
+        .catch(() => {
+          toast({ title: "Error", description: "Gagal mengambil data untuk edit", variant: "destructive" });
+          navigate("/data-harian");
+        });
+    }
+  }, []);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -70,8 +111,6 @@ export default function DataHarian() {
   const submitMutation = useMutation({
     mutationFn: async (data: FormData) => {
       setIsSubmitting(true);
-
-      // Buat array promises untuk menjalankan semua operasi secara paralel
       const promises = [];
 
       // Promise untuk Web3 submission (jika terhubung)
@@ -87,17 +126,15 @@ export default function DataHarian() {
         );
       }
 
-      // Promise untuk Google Sheets
+      // Google Sheets payload
       const mappedFormObject: { [key: string]: string | undefined } = {
         "Tanggal Kunjungan": data.date,
         "Nama Pasien": data.patientName,
         "No.RM": data.medicalRecordNumber,
         "Kelamin": data.gender,
-        "Biaya": data.paymentType, // This maps paymentType (BPJS/UMUM) to the 'Biaya' column
+        "Biaya": data.paymentType,
         "Lainnya": data.otherActions || ""
       };
-
-      // Add selected actions to mappedFormObject
       actionOptions.forEach(option => {
         if (data.actions && data.actions.includes(option.id)) {
           mappedFormObject[option.label] = "Yes";
@@ -105,12 +142,17 @@ export default function DataHarian() {
           mappedFormObject[option.label] = "No";
         }
       });
-
-      // Kode edit telah dihapus
+      // Jika edit mode, tambahkan action dan identifier asli
+      if (isEditMode && originalIdentifiers) {
+        mappedFormObject["action"] = "edit";
+        mappedFormObject["Tanggal Kunjungan_asli"] = originalIdentifiers.date;
+        mappedFormObject["Nama Pasien_asli"] = originalIdentifiers.patientName;
+        mappedFormObject["No.RM_asli"] = originalIdentifiers.medicalRecordNumber;
+      }
 
       promises.push(
         fetch(
-        "https://script.google.com/macros/s/AKfycbxnyacmLOW4Ts93_S56wLJj1i4eT76sm1SvJhXu8w-MAmyAtj9DPtoaY28mvD9OkmD2/exec",
+          "https://script.google.com/macros/s/AKfycbxnyacmLOW4Ts93_S56wLJj1i4eT76sm1SvJhXu8w-MAmyAtj9DPtoaY28mvD9OkmD2/exec",
           {
             method: "POST",
             body: new URLSearchParams(Object.fromEntries(Object.entries(mappedFormObject).map(([key, value]) => [key, value ?? '']))),
@@ -123,49 +165,48 @@ export default function DataHarian() {
             console.error("Gagal mengirim data ke Google Sheets:", sheetsData.message);
             toast({
               title: "Error",
-              description: "Gagal mengirim data ke Google Sheets",
+              description: isEditMode ? "Gagal update data di Google Sheets" : "Gagal mengirim data ke Google Sheets",
               variant: "destructive"
             });
           } else {
-            console.log("Data berhasil disimpan ke Google Sheets");
+            console.log(isEditMode ? "Data berhasil diupdate di Google Sheets" : "Data berhasil disimpan ke Google Sheets");
           }
         })
         .catch(sheetError => {
           console.error("Error saat mengirim ke Google Sheets:", sheetError);
           toast({
             title: "Error",
-            description: "Gagal terhubung ke Google Sheets",
+            description: isEditMode ? "Gagal update data di Google Sheets" : "Gagal terhubung ke Google Sheets",
             variant: "destructive"
           });
         })
       );
-
-      // Promise untuk API - Hanya POST karena mode edit telah dihapus
-      promises.push(
-        apiRequest("POST", "/api/data-entries", data)
-          .then(response => response.json())
-      );
-
-      // Jalankan semua promises secara paralel
+      // API request
+      if (isEditMode && originalIdentifiers) {
+        promises.push(
+          apiRequest("PUT", `/api/data-entries/${searchParams.get("edit")}` , data).then(res => res.json())
+        );
+      } else {
+        promises.push(
+          apiRequest("POST", "/api/data-entries", data).then(res => res.json())
+        );
+      }
       await Promise.allSettled(promises);
-
-      // Return hasil dari API untuk digunakan di onSuccess
       return promises[promises.length - 1];
     },
     onSuccess: () => {
-      // Selalu panggil clearForm karena tidak ada mode edit
       clearForm();
-      
+      setIsEditMode(false);
+      setOriginalIdentifiers(null);
       toast({
         title: "Sukses",
-        description: "Data berhasil disimpan",
+        description: isEditMode ? "Data berhasil diupdate" : "Data berhasil disimpan",
       });
-      
-      // Force refresh all dashboard queries
       queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
       queryClient.invalidateQueries({ queryKey: ["/api/daily-visits"] });
       queryClient.refetchQueries({ queryKey: ["/api/statistics"] });
       queryClient.refetchQueries({ queryKey: ["/api/daily-visits"] });
+      navigate("/dashboard");
     },
     onError: (error) => {
       toast({
@@ -195,7 +236,6 @@ export default function DataHarian() {
   };
 
   const clearForm = () => {
-    // Reset semua field form
     form.reset({
       date: new Date().toISOString().split('T')[0],
       patientName: "",
@@ -206,6 +246,8 @@ export default function DataHarian() {
       otherActions: "",
       description: "",
     });
+    setIsEditMode(false);
+    setOriginalIdentifiers(null);
   };
 
   return (
@@ -383,13 +425,16 @@ export default function DataHarian() {
                                       className="sr-only"
                                     />
                                   </FormControl>
-                                  <FormLabel 
+                                  <FormLabel
                                     htmlFor={option.id}
-                                    className={`flex-1 px-3 py-2 text-center border rounded-md cursor-pointer transition-all duration-300 text-sm font-medium ${
-                                      field.value?.includes(option.id)
-                                        ? "bg-blue-600 text-white border-blue-600 transform scale-105"
-                                        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-300"
-                                    }`}
+                                    className={
+                                      [
+                                        "flex-1 px-3 py-2 text-center border rounded-md cursor-pointer transition-all duration-300 text-sm font-medium",
+                                        field.value?.includes(option.id)
+                                          ? "bg-blue-600 text-white border-blue-600 transform scale-105"
+                                          : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-300"
+                                      ].join(" ")
+                                    }
                                   >
                                     {option.label}
                                   </FormLabel>
@@ -446,9 +491,25 @@ export default function DataHarian() {
                         className="bg-blue-600 hover:bg-blue-700 px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg transition-all duration-300 hover:shadow-lg flex items-center"
                       >
                         <Save className="mr-2 h-4 w-4" />
-                        {isSubmitting ? "Menyimpan..." : "Submit Data"}
+                        {isSubmitting ? (isEditMode ? "Menyimpan Perubahan..." : "Menyimpan...") : (isEditMode ? "Update Data" : "Submit Data")}
                       </Button>
                     </motion.div>
+                    {isEditMode && (
+                      <motion.div
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={clearForm}
+                          className="px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg transition-all duration-300 hover:shadow-lg flex items-center"
+                        >
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Batal Edit
+                        </Button>
+                      </motion.div>
+                    )}
                   </motion.div>
                 </form>
               </Form>

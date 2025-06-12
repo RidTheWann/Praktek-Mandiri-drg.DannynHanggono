@@ -59,8 +59,19 @@ export default async function handler(req, res) {
         entries = entries.filter(e => e.medicalRecordNumber && e.medicalRecordNumber.toLowerCase().includes(query.data.medicalRecord.toLowerCase()));
       }
       if (query.data.action) {
-        entries = entries.filter(e => Array.isArray(e.actions) && e.actions.includes(query.data.action));
+        // Pencarian tindakan: cocokkan id tindakan, label tindakan, dan juga 'lainnya' jika ada
+        entries = entries.filter(e => {
+          const actionMatch = Array.isArray(e.actions) && (
+            e.actions.includes(query.data.action) ||
+            e.actions.some(a => a.toLowerCase().includes(query.data.action.toLowerCase()))
+          );
+          // Cek juga kolom otherActions/lainnya
+          const otherMatch = (e.otherActions && e.otherActions.toLowerCase().includes(query.data.action.toLowerCase())) || false;
+          return actionMatch || otherMatch;
+        });
       }
+      // Sort by id descending (newest first)
+      entries = entries.sort((a, b) => Number(b.id) - Number(a.id));
       return res.json(entries);
     }
     
