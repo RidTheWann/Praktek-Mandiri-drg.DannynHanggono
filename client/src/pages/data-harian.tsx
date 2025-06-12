@@ -62,7 +62,6 @@ export default function DataHarian() {
     const editId = searchParams.get("edit");
     if (editId) {
       setIsEditMode(true);
-      // Fetch all entries first to find the specific entry by ID
       apiRequest("GET", "/api/data-entries")
         .then(res => res.json())
         .then(entries => {
@@ -75,7 +74,7 @@ export default function DataHarian() {
                 medicalRecordNumber: entry.medicalRecordNumber,
                 gender: entry.gender,
                 paymentType: entry.paymentType,
-                actions: entry.actions || [],
+                actions: Array.isArray(entry.actions) ? entry.actions : [],
                 otherActions: entry.otherActions || "",
                 description: entry.description || "",
               });
@@ -93,8 +92,8 @@ export default function DataHarian() {
             navigate("/data-harian");
           }
         })
-        .catch(() => {
-          toast({ title: "Error", description: "Gagal mengambil data untuk edit", variant: "destructive" });
+        .catch((err) => {
+          toast({ title: "Error", description: "Gagal mengambil data untuk edit: " + (err?.message || err), variant: "destructive" });
           navigate("/data-harian");
         });
     }

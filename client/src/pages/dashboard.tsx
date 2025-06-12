@@ -97,67 +97,67 @@ export default function Dashboard() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      // Pertama, dapatkan data entry yang akan dihapus untuk dikirim ke Google Sheets
-      const entryToDelete = dailyVisits?.find(visit => visit.id === id);
-      // Hapus dari database lokal
-      // FIX: Gunakan query param agar backend menerima id
-      // Gunakan query parameter untuk ID, bukan path parameter
-      const response = await apiRequest("DELETE", `/api/data-entries?id=${id}`);
-      // Jika berhasil dihapus dari database dan data entry ditemukan, hapus juga dari Google Sheets
-      if (response.ok && entryToDelete) {
-        try {
-          // Mapping data untuk dikirim ke Google Sheets dengan flag delete
-          // Pastikan menggunakan No.Antrean sebagai ID untuk Google Sheets
-          const mappedFormObject: { [key: string]: string | undefined } = {
-            "action": "delete",
-            "id": entryToDelete.id.toString(), // Using entry ID as identifier for Google Sheets
-            "Tanggal Kunjungan": entryToDelete.date,
-            "Nama Pasien": entryToDelete.patientName,
-            "No.RM": entryToDelete.medicalRecordNumber,
-            "Kelamin": entryToDelete.gender,
-            "Biaya": entryToDelete.paymentType,
-            "Lainnya": entryToDelete.otherActions || ""
-          };
-
-          // Add selected actions to mappedFormObject
-          Object.keys(actionLabels).forEach(actionId => {
-            if (entryToDelete.actions && entryToDelete.actions.includes(actionId)) {
-              mappedFormObject[actionLabels[actionId]] = "Yes";
-            } else {
-              mappedFormObject[actionLabels[actionId]] = "No";
-            }
-          });
-      
-          // Kirim data ke Google Sheets menggunakan Apps Script
-          const sheetsResponse = await fetch(
-            "https://script.google.com/macros/s/AKfycbxnyacmLOW4Ts93_S56wLJj1i4eT76sm1SvJhXu8w-MAmyAtj9DPtoaY28mvD9OkmD2/exec",
-            {
-              method: "POST",
-              body: new URLSearchParams(Object.entries(mappedFormObject).reduce((acc, [key, value]) => ({
-                ...acc,
-                [key]: value ?? ''
-              }), {} as Record<string, string>)),
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            }
-          );
-      
-          const sheetsData = await sheetsResponse.json();
-          if (sheetsData.result !== "success") {
-            console.error("Gagal menghapus data dari Google Sheets:", sheetsData.message);
-            toast({
-              title: "Error",
-              description: "Gagal menghapus data dari Google Sheets",
-              variant: "destructive"
-            });
-          } else {
-            console.log("Data berhasil dihapus dari Google Sheets");
-          }
-        } catch (sheetError) {
-          console.error("Error saat menghapus dari Google Sheets:", sheetError);
+      try {
+        const entryToDelete = dailyVisits?.find(visit => visit.id === id);
+        const response = await apiRequest("DELETE", `/api/data-entries?id=${id}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Gagal hapus data: ${errorText}`);
         }
+        if (entryToDelete) {
+          try {
+            const mappedFormObject: { [key: string]: string | undefined } = {
+              "action": "delete",
+              "id": entryToDelete.id.toString(),
+              "Tanggal Kunjungan": entryToDelete.date,
+              "Nama Pasien": entryToDelete.patientName,
+              "No.RM": entryToDelete.medicalRecordNumber,
+              "Kelamin": entryToDelete.gender,
+              "Biaya": entryToDelete.paymentType,
+              "Lainnya": entryToDelete.otherActions || ""
+            };
+            Object.keys(actionLabels).forEach(actionId => {
+              if (entryToDelete.actions && entryToDelete.actions.includes(actionId)) {
+                mappedFormObject[actionLabels[actionId]] = "Yes";
+              } else {
+                mappedFormObject[actionLabels[actionId]] = "No";
+              }
+            });
+            const sheetsResponse = await fetch(
+              "https://script.google.com/macros/s/AKfycbxnyacmLOW4Ts93_S56wLJj1i4eT76sm1SvJhXu8w-MAmyAtj9DPtoaY28mvD9OkmD2/exec",
+              {
+                method: "POST",
+                body: new URLSearchParams(Object.entries(mappedFormObject).reduce((acc, [key, value]) => ({
+                  ...acc,
+                  [key]: value ?? ''
+                }), {} as Record<string, string>)),
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              }
+            );
+            const sheetsData = await sheetsResponse.json();
+            if (sheetsData.result !== "success") {
+              console.error("Gagal menghapus data dari Google Sheets:", sheetsData.message);
+              toast({
+                title: "Error",
+                description: "Gagal menghapus data dari Google Sheets",
+                variant: "destructive"
+              });
+            } else {
+              console.log("Data berhasil dihapus dari Google Sheets");
+            }
+          } catch (sheetError) {
+            console.error("Error saat menghapus dari Google Sheets:", sheetError);
+          }
+        }
+        return response.json();
+      } catch (err: any) {
+        toast({
+          title: "Error",
+          description: err.message || "Gagal menghapus data",
+          variant: "destructive"
+        });
+        throw err;
       }
-      
-      return response.json();
     },
     onSuccess: () => {
       toast({
