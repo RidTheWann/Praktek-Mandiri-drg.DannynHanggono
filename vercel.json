@@ -1,21 +1,23 @@
 {
   "version": 2,
-  "buildCommand": "npm run vercel-build",
   "builds": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build"
+      "src": "dist/index.html",
+      "use": "@vercel/static"
     },
     {
-      "src": "api/*.ts",
+      "src": "api/**/*.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
-    { "src": "/api/daily-visits", "dest": "api/daily-visits.ts" },
-    { "src": "/api/data-entries", "dest": "api/data-entries.ts" },
-    { "src": "/api/statistics", "dest": "api/statistics.ts" },
-    { "src": "/assets/(.*)", "dest": "/dist/assets/$1" },
-    { "src": "/(.*)", "dest": "/dist/index.html" }
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/$1"
+    }
   ]
 }

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -43,6 +42,10 @@ interface Statistics {
   totalPatients: number;
   trafficData: Array<{ date: string; male: number; female: number }>;
   actionDistribution: Record<string, number>;
+  paymentTypes: {
+    bpjs: number;
+    umum: number;
+  };
 }
 
 const COLORS = ['#0066CC', '#4A90E2', '#22C55E', '#F59E0B', '#EF4444'];
@@ -243,8 +246,8 @@ export default function Dashboard() {
     })) : [];
 
   const paymentPieData = [
-    { name: 'BPJS', value: stats?.bpjsCount || 0 },
-    { name: 'UMUM', value: stats?.umumCount || 0 }
+    { name: 'BPJS', value: stats?.paymentTypes?.bpjs || 0 },
+    { name: 'UMUM', value: stats?.paymentTypes?.umum || 0 }
   ];
 
   return (
@@ -341,29 +344,29 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {visit.patientName}
+                            {visit.patientName || '-'}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {visit.gender}
+                            {visit.gender || '-'}
                           </div>
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {visit.medicalRecordNumber}
+                          {visit.medicalRecordNumber || '-'}
                         </div>
                         <div className="flex flex-wrap gap-1 max-w-[120px]">
-                          {visit.actions.map((action, index) => (
+                          {Array.isArray(visit.actions) && visit.actions.length > 0 ? visit.actions.map((action, index) => (
                             <Badge key={index} variant="secondary" className="text-xs mb-1">
                               {actionLabels[action] || action}
                             </Badge>
-                          ))}
+                          )) : <span className="text-xs text-gray-400">-</span>}
                         </div>
                         <div className="text-sm text-gray-900 dark:text-white">
                           <Badge variant={visit.paymentType === 'BPJS' ? 'default' : 'secondary'}>
-                            {visit.paymentType}
+                            {visit.paymentType || '-'}
                           </Badge>
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                          {visit.otherActions || '-'}
+                          {visit.otherActions && visit.otherActions.trim() !== '' ? visit.otherActions : '-'}
                         </div>
                         <div className="flex gap-1">
                           <Button
@@ -599,19 +602,17 @@ export default function Dashboard() {
                         animationDuration={1800}
                         animationEasing="ease-in-out"
                         dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#ffffff' }}
-                        activeDot={{ r: 7, fill: '#3b82f6', stroke: '#ffffff', strokeWidth: 2 }}
                       />
                       <Line 
                         type="monotone" 
                         dataKey="female" 
-                        stroke="#ec4899" 
+                        stroke="#f472b6" 
                         name="Perempuan" 
                         strokeWidth={3} 
                         isAnimationActive={true}
                         animationDuration={1800}
                         animationEasing="ease-in-out"
-                        dot={{ r: 4, fill: '#ec4899', strokeWidth: 2, stroke: '#ffffff' }}
-                        activeDot={{ r: 7, fill: '#ec4899', stroke: '#ffffff', strokeWidth: 2 }}
+                        dot={{ r: 4, fill: '#f472b6', strokeWidth: 2, stroke: '#ffffff' }}
                       />
                     </LineChart>
                   </ResponsiveContainer>

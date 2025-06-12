@@ -1,9 +1,10 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useTheme } from "next-themes";
 import { Menu, Sun, Moon, Stethoscope } from "lucide-react";
 import { useState } from "react";
+import { navigateTo } from "@/lib/simple-router";
 var navItems = [
     { href: "/", label: "Beranda" },
     { href: "/data-harian", label: "Data Harian" },
@@ -37,13 +38,16 @@ export function Navigation() {
           {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
-              {navItems.map(function (item) { return (<Link key={item.href} href={item.href}>
+              {navItems.map(function (item) { return (<a key={item.href} href={item.href} onClick={(e) => {
+                  e.preventDefault();
+                  navigateTo(item.href);
+                }}>
                   <span className={"px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ".concat(location === item.href
                 ? "bg-blue-600 text-white"
                 : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400")}>
                     {item.label}
                   </span>
-                </Link>); })}
+                </a>); })}
             </div>
           </div>
 
@@ -63,13 +67,17 @@ export function Navigation() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[240px] sm:w-[300px]">
                 <div className="flex flex-col space-y-4 mt-8">
-                  {navItems.map(function (item) { return (<Link key={item.href} href={item.href}>
+                  {navItems.map(function (item) { return (<a key={item.href} href={item.href} onClick={(e) => {
+                      e.preventDefault();
+                      navigateTo(item.href);
+                      setIsOpen(false);
+                    }}>
                       <span className={"block px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer ".concat(location === item.href
                 ? "bg-blue-600 text-white"
-                : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400")} onClick={function () { return setIsOpen(false); }}>
+                : "text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400")}>
                         {item.label}
                       </span>
-                    </Link>); })}
+                    </a>); })}
                 </div>
               </SheetContent>
             </Sheet>

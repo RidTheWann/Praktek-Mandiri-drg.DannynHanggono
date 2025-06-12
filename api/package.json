@@ -1,0 +1,10 @@
+{
+  "name": "praktek-mandiri-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "pg": "^8.11.3",
+    "zod": "^3.22.4"
+  }
+}

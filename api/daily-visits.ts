@@ -1,38 +1,64 @@
-import { storage } from './storage.js';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { combinedStorage } from './combined';
 import { z } from 'zod';
-import type { Request, Response } from 'express';
 
 const querySchema = z.object({
   date: z.string().optional()
 });
 
-export default async function handler(req: Request, res: Response) {
+// Enable CORS middleware
+function enableCors(req: NextApiRequest, res: NextApiResponse) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  // Handle OPTIONS method for preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return true;
+  }
+  return false;
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    if (req.method === "GET") {
-      const query = querySchema.safeParse(req.query);
-      
-      if (!query.success) {
-        return res.status(400).json({ error: "Invalid query parameters" });
-      }
-
-      if (query.data.date) {
-        const entries = await storage.getDataEntriesByDateRange(query.data.date, query.data.date);
-        return res.json(entries);
-      } else {
-        const entries = await storage.getDataEntries();
-        return res.json(entries);
-      }
+    // Handle CORS preflight
+    if (enableCors(req, res)) {
+      return;
     }
-
-    return res.status(405).json({ error: "Method Not Allowed" });
+    
+    if (req.method !== "GET") {
+      return res.status(405).json({ error: "Method Not Allowed" });
+    }
+    
+    const query = querySchema.safeParse(req.query);
+    if (!query.success) {
+      return res.status(400).json({ error: "Invalid query parameters" });
+    }
+    
+    if (query.data.date) {
+      const entries = await combinedStorage.getDataEntriesByDateRange(query.data.date, query.data.date);
+      return res.json(entries);
+    } else {
+      const entries = await combinedStorage.getDataEntries();
+      return res.json(entries);
+    }
   } catch (err: any) {
     console.error("[daily-visits] API error:", {
       message: err?.message,
       stack: err?.stack,
-      query: req.query
+      query: req.query,
+      method: req.method,
+      time: new Date().toISOString()
     });
-    return res.status(500).json({ 
-      error: 'Internal Server Error', 
+    
+    return res.status(500).json({
+      error: 'Internal Server Error',
       details: err?.message || String(err)
     });
   }

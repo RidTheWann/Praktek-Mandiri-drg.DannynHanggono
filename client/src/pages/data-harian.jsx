@@ -43,7 +43,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from 'date-fns';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -60,7 +60,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { web3Provider } from "@/lib/web3";
-var formSchema = z.object({
+import { getUrlParams } from "@/lib/simple-router";
+import { handleApiError } from "@/lib/api-helper";
+
+const formSchema = z.object({
     date: z.string().min(1, "Tanggal harus diisi"),
     patientName: z.string().min(1, "Nama pasien harus diisi"),
     medicalRecordNumber: z.string().min(1, "No. RM harus diisi"),
@@ -75,7 +78,8 @@ var formSchema = z.object({
     message: "Wajib mengisi minimal satu Tindakan atau Tindakan Lainnya",
     path: ["actions"],
 });
-var actionOptions = [
+
+const actionOptions = [
     { id: "obat", label: "Obat" },
     { id: "cabut-anak", label: "Cabut Anak" },
     { id: "cabut-dewasa", label: "Cabut Dewasa" },
@@ -84,17 +88,20 @@ var actionOptions = [
     { id: "scaling", label: "Scaling" },
     { id: "rujuk", label: "Rujuk" },
 ];
+
 export default function DataHarian() {
-    var _this = this;
-    var toast = useToast().toast;
-    var queryClient = useQueryClient();
-    var _a = useState(false), isSubmitting = _a[0], setIsSubmitting = _a[1];
-    // Mode edit telah dihapus
-    // Fungsi edit telah dihapus
-    var form = useForm({
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Get URL parameters to check for edit mode
+    const urlParams = getUrlParams();
+    const editId = urlParams.edit ? parseInt(urlParams.edit) : null;
+    
+    const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            date: format(new Date(), 'yyyy-MM-dd'), // Set tanggal hari ini
+            date: format(new Date(), 'yyyy-MM-dd'),
             patientName: "",
             medicalRecordNumber: "",
             gender: undefined,
@@ -104,97 +111,81 @@ export default function DataHarian() {
             description: "",
         },
     });
-    var submitMutation = useMutation({
-        mutationFn: function (data) { return __awaiter(_this, void 0, void 0, function () {
-            var promises, mappedFormObject;
+    
+    // Load data if in edit mode
+    useEffect(() => {
+        if (editId) {
+            const loadEditData = async () => {
+                try {
+                    const response = await apiRequest("GET", `/api/data-entries?id=${editId}`);
+                    const entries = await response.json();
+                    
+                    if (entries && entries.length > 0) {
+                        const entry = entries.find(e => e.id === editId) || entries[0];
+                        form.reset({
+                            date: entry.date,
+                            patientName: entry.patientName,
+                            medicalRecordNumber: entry.medicalRecordNumber,
+                            gender: entry.gender,
+                            paymentType: entry.paymentType,
+                            actions: entry.actions || [],
+                            otherActions: entry.otherActions || "",
+                            description: entry.description || "",
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error loading edit data:", error);
+                    toast({
+                        title: "Error",
+                        description: "Gagal memuat data untuk diedit",
+                        variant: "destructive",
+                    });
+                }
+            };
+            
+            loadEditData();
+        }
+    }, [editId, form, toast]);
+
+    const submitMutation = useMutation({
+        mutationFn: function (data) { return __awaiter(this, void 0, void 0, function () {
+            var apiMethod, apiUrl, response, result;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         setIsSubmitting(true);
-                        promises = [];
-                        // Promise untuk Web3 submission (jika terhubung)
-                        if (web3Provider.isConnected) {
-                            promises.push(web3Provider.addEntry(data.date, data.actions || [], data.description || "")
-                                .then(function () {
-                                console.log("Data berhasil disimpan ke blockchain");
-                            })
-                                .catch(function (error) {
-                                console.log("Web3 submission failed, falling back to API", error);
-                            }));
-                        }
-                        mappedFormObject = {
-                            "Tanggal Kunjungan": data.date,
-                            "Nama Pasien": data.patientName,
-                            "No.RM": data.medicalRecordNumber,
-                            "Kelamin": data.gender,
-                            "Biaya": data.paymentType, // This maps paymentType (BPJS/UMUM) to the 'Biaya' column
-                            "Lainnya": data.otherActions || ""
-                        };
-                        // Add selected actions to mappedFormObject
-                        actionOptions.forEach(function (option) {
-                            if (data.actions && data.actions.includes(option.id)) {
-                                mappedFormObject[option.label] = "Yes";
-                            }
-                            else {
-                                mappedFormObject[option.label] = "No";
-                            }
-                        });
-                        // Kode edit telah dihapus
-                        promises.push(fetch("https://script.google.com/macros/s/AKfycbxnyacmLOW4Ts93_S56wLJj1i4eT76sm1SvJhXu8w-MAmyAtj9DPtoaY28mvD9OkmD2/exec", {
-                            method: "POST",
-                            body: new URLSearchParams(Object.fromEntries(Object.entries(mappedFormObject).map(function (_a) {
-                                var key = _a[0], value = _a[1];
-                                return [key, value !== null && value !== void 0 ? value : ''];
-                            }))),
-                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        })
-                            .then(function (response) { return response.json(); })
-                            .then(function (sheetsData) {
-                            if (sheetsData.result !== "success") {
-                                console.error("Gagal mengirim data ke Google Sheets:", sheetsData.message);
-                                toast({
-                                    title: "Error",
-                                    description: "Gagal mengirim data ke Google Sheets",
-                                    variant: "destructive"
-                                });
-                            }
-                            else {
-                                console.log("Data berhasil disimpan ke Google Sheets");
-                            }
-                        })
-                            .catch(function (sheetError) {
-                            console.error("Error saat mengirim ke Google Sheets:", sheetError);
-                            toast({
-                                title: "Error",
-                                description: "Gagal terhubung ke Google Sheets",
-                                variant: "destructive"
-                            });
-                        }));
-                        // Promise untuk API - Hanya POST karena mode edit telah dihapus
-                        promises.push(apiRequest("POST", "/api/data-entries", data)
-                            .then(function (response) { return response.json(); }));
-                        // Jalankan semua promises secara paralel
-                        return [4 /*yield*/, Promise.allSettled(promises)];
+                        
+                        // Determine API method and URL based on edit mode
+                        apiMethod = editId ? "PUT" : "POST";
+                        apiUrl = editId ? `/api/data-entries?id=${editId}` : "/api/data-entries";
+                        
+                        return [4 /*yield*/, apiRequest(apiMethod, apiUrl, data)];
                     case 1:
-                        // Jalankan semua promises secara paralel
-                        _a.sent();
-                        // Return hasil dari API untuk digunakan di onSuccess
-                        return [2 /*return*/, promises[promises.length - 1]];
+                        response = _a.sent();
+                        return [4 /*yield*/, response.json()];
+                    case 2:
+                        result = _a.sent();
+                        return [2 /*return*/, result];
                 }
             });
         }); },
         onSuccess: function () {
-            // Selalu panggil clearForm karena tidak ada mode edit
             clearForm();
             toast({
                 title: "Sukses",
-                description: "Data berhasil disimpan",
+                description: editId ? "Data berhasil diperbarui" : "Data berhasil disimpan",
             });
+            
             // Force refresh all dashboard queries
             queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
             queryClient.invalidateQueries({ queryKey: ["/api/daily-visits"] });
             queryClient.refetchQueries({ queryKey: ["/api/statistics"] });
             queryClient.refetchQueries({ queryKey: ["/api/daily-visits"] });
+            
+            // Clear edit mode from URL if applicable
+            if (editId) {
+                window.history.replaceState({}, '', '/data-harian');
+            }
         },
         onError: function (error) {
             toast({
@@ -203,13 +194,16 @@ export default function DataHarian() {
                 variant: "destructive",
             });
             console.error("Submission error:", error);
+            handleApiError(error, toast);
         },
         onSettled: function () {
             setIsSubmitting(false);
         },
     });
-    var onSubmit = function (data) {
-        console.log("Submitting form data for edit/add:", JSON.stringify(data, null, 2)); // DIAGNOSTIC LOG
+
+    const onSubmit = function (data) {
+        console.log("Submitting form data for edit/add:", JSON.stringify(data, null, 2));
+        
         // Validate that either actions or otherActions is filled
         if ((!data.actions || data.actions.length === 0) && (!data.otherActions || data.otherActions.trim() === "")) {
             toast({
@@ -219,10 +213,12 @@ export default function DataHarian() {
             });
             return;
         }
+        
         submitMutation.mutate(data);
     };
-    var clearForm = function () {
-        // Reset semua field form
+
+    const clearForm = function () {
+        // Reset form fields
         form.reset({
             date: new Date().toISOString().split('T')[0],
             patientName: "",
@@ -234,178 +230,179 @@ export default function DataHarian() {
             description: "",
         });
     };
-    return (<main className="min-h-screen bg-gray-50 dark:bg-gray-900 py-6 sm:py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }}>
-          <Card className="shadow-lg hover:shadow-xl transition-all duration-500">
-            <CardContent className="p-5 md:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-                    Input Data Harian
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400 mt-2">
-                    Catat tindakan medis dan rujukan hari ini
-                  </p>
-                </div>
-                <motion.div className="text-blue-600 text-3xl self-start sm:self-auto" whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
-                  <CalendarPlus className="h-8 w-8"/>
+
+    return (
+        <main className="min-h-screen bg-gray-50 dark:bg-gray-900 py-6 sm:py-8">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }}>
+                    <Card className="shadow-lg hover:shadow-xl transition-all duration-500">
+                        <CardContent className="p-5 md:p-8">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+                                <div>
+                                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                                        {editId ? "Edit Data Pasien" : "Input Data Harian"}
+                                    </h1>
+                                    <p className="text-gray-600 dark:text-gray-400 mt-2">
+                                        Catat tindakan medis dan rujukan hari ini
+                                    </p>
+                                </div>
+                                <motion.div className="text-blue-600 text-3xl self-start sm:self-auto" whileHover={{ scale: 1.1 }} transition={{ type: "spring", stiffness: 400, damping: 10 }}>
+                                    <CalendarPlus className="h-8 w-8"/>
+                                </motion.div>
+                            </div>
+
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" data-prevent-refresh="true">
+                                    {/* Date Field */}
+                                    <FormField control={form.control} name="date" render={function (_a) {
+                                        var field = _a.field;
+                                        return (<FormItem>
+                                            <FormLabel>
+                                                Tanggal <span className="text-red-500">*</span>
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input type="date" {...field} className="focus:ring-2 focus:ring-blue-500 transition-all duration-300"/>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>);
+                                    }}/>
+
+                                    {/* Patient Information Section */}
+                                    <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+                                        {/* Patient Name */}
+                                        <FormField control={form.control} name="patientName" render={function (_a) {
+                                            var field = _a.field;
+                                            return (<FormItem>
+                                                <FormLabel>
+                                                    Nama Pasien <span className="text-red-500">*</span>
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Masukkan nama lengkap pasien" {...field} className="focus:ring-2 focus:ring-blue-500 transition-all duration-300"/>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>);
+                                        }}/>
+
+                                        {/* Medical Record Number */}
+                                        <FormField control={form.control} name="medicalRecordNumber" render={function (_a) {
+                                            var field = _a.field;
+                                            return (<FormItem>
+                                                <FormLabel>
+                                                    No. RM <span className="text-red-500">*</span>
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Contoh : 00.00.00" {...field} className="focus:ring-2 focus:ring-blue-500 transition-all duration-300"/>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>);
+                                        }}/>
+
+                                        {/* Gender */}
+                                        <FormField control={form.control} name="gender" render={function (_a) {
+                                            var field = _a.field;
+                                            return (<FormItem>
+                                                <FormLabel>
+                                                    Kelamin <span className="text-red-500">*</span>
+                                                </FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                                    <FormControl>
+                                                        <SelectTrigger className="focus:ring-2 focus:ring-blue-500 transition-all duration-300">
+                                                            <SelectValue placeholder="Pilih jenis kelamin"/>
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                                                        <SelectItem value="Perempuan">Perempuan</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>);
+                                        }}/>
+
+                                        {/* Payment Type */}
+                                        <FormField control={form.control} name="paymentType" render={function (_a) {
+                                            var field = _a.field;
+                                            return (<FormItem>
+                                                <FormLabel>
+                                                    Biaya <span className="text-red-500">*</span>
+                                                </FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                                    <FormControl>
+                                                        <SelectTrigger className="focus:ring-2 focus:ring-blue-500 transition-all duration-300">
+                                                            <SelectValue placeholder="Pilih jenis pembayaran"/>
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="BPJS">BPJS</SelectItem>
+                                                        <SelectItem value="UMUM">UMUM</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>);
+                                        }}/>
+                                    </div>
+
+                                    {/* Actions Checkboxes */}
+                                    <FormField control={form.control} name="actions" render={function () { return (<FormItem>
+                                        <FormLabel>
+                                            Tindakan <span className="text-red-500">*</span>
+                                        </FormLabel>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
+                                            {actionOptions.map(function (option) { return (<FormField key={option.id} control={form.control} name="actions" render={function (_a) {
+                                                var _b, _c;
+                                                var field = _a.field;
+                                                return (<FormItem className="flex flex-row items-center space-x-0 space-y-0">
+                                                    <FormControl>
+                                                        <Checkbox id={option.id} checked={(_b = field.value) === null || _b === void 0 ? void 0 : _b.includes(option.id)} onCheckedChange={function (checked) {
+                                                            var _a;
+                                                            return checked
+                                                                ? field.onChange(__spreadArray(__spreadArray([], (field.value || []), true), [option.id], false))
+                                                                : field.onChange((_a = field.value) === null || _a === void 0 ? void 0 : _a.filter(function (value) { return value !== option.id; }));
+                                                        }} className="sr-only"/>
+                                                    </FormControl>
+                                                    <FormLabel htmlFor={option.id} className={"flex-1 px-3 py-2 text-center border rounded-md cursor-pointer transition-all duration-300 text-sm font-medium ".concat(((_c = field.value) === null || _c === void 0 ? void 0 : _c.includes(option.id))
+                                                        ? "bg-blue-600 text-white border-blue-600 transform scale-105"
+                                                        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-300")}>
+                                                        {option.label}
+                                                    </FormLabel>
+                                                </FormItem>);
+                                            }}/>); })}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>); }}/>
+
+                                    {/* Other Actions */}
+                                    <FormField control={form.control} name="otherActions" render={function (_a) {
+                                        var field = _a.field;
+                                        return (<FormItem>
+                                            <FormLabel>
+                                                Tindakan Lainnya <span className="text-red-500">*</span>
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Sebutkan tindakan lainnya..." {...field} className="focus:ring-2 focus:ring-blue-500 transition-all duration-300"/>
+                                            </FormControl>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                * Pilih minimal satu tindakan di atas atau isi tindakan lainnya
+                                            </p>
+                                            <FormMessage />
+                                        </FormItem>);
+                                    }}/>
+
+                                    {/* Action Buttons */}
+                                    <motion.div className="flex justify-center pt-4 sm:pt-6 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                                        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
+                                            <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg transition-all duration-300 hover:shadow-lg flex items-center">
+                                                <Save className="mr-2 h-4 w-4"/>
+                                                {isSubmitting ? "Menyimpan..." : (editId ? "Update Data" : "Submit Data")}
+                                            </Button>
+                                        </motion.div>
+                                    </motion.div>
+                                </form>
+                            </Form>
+                        </CardContent>
+                    </Card>
                 </motion.div>
-              </div>
-
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Date Field */}
-                  <FormField control={form.control} name="date" render={function (_a) {
-            var field = _a.field;
-            return (<FormItem>
-                        <FormLabel>
-                          Tanggal <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} className="focus:ring-2 focus:ring-blue-500 transition-all duration-300"/>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>);
-        }}/>
-
-                  {/* Patient Information Section */}
-                  <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-                    {/* Patient Name */}
-                    <FormField control={form.control} name="patientName" render={function (_a) {
-            var field = _a.field;
-            return (<FormItem>
-                          <FormLabel>
-                            Nama Pasien <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input placeholder="Masukkan nama lengkap pasien" {...field} className="focus:ring-2 focus:ring-blue-500 transition-all duration-300"/>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>);
-        }}/>
-
-                    {/* Medical Record Number */}
-                    <FormField control={form.control} name="medicalRecordNumber" render={function (_a) {
-            var field = _a.field;
-            return (<FormItem>
-                          <FormLabel>
-                            No. RM <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input placeholder="Contoh : 00.00.00" {...field} className="focus:ring-2 focus:ring-blue-500 transition-all duration-300"/>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>);
-        }}/>
-
-                    {/* Gender */}
-                    <FormField control={form.control} name="gender" render={function (_a) {
-            var field = _a.field;
-            return (<FormItem>
-                          <FormLabel>
-                            Kelamin <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                              <SelectTrigger className="focus:ring-2 focus:ring-blue-500 transition-all duration-300">
-                                <SelectValue placeholder="Pilih jenis kelamin"/>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Laki-laki">Laki-laki</SelectItem>
-                              <SelectItem value="Perempuan">Perempuan</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>);
-        }}/>
-
-                    {/* Payment Type */}
-                    <FormField control={form.control} name="paymentType" render={function (_a) {
-            var field = _a.field;
-            return (<FormItem>
-                          <FormLabel>
-                            Biaya <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                              <SelectTrigger className="focus:ring-2 focus:ring-blue-500 transition-all duration-300">
-                                <SelectValue placeholder="Pilih jenis pembayaran"/>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="BPJS">BPJS</SelectItem>
-                              <SelectItem value="UMUM">UMUM</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>);
-        }}/>
-                  </div>
-
-                  {/* Actions Checkboxes */}
-                  <FormField control={form.control} name="actions" render={function () { return (<FormItem>
-                        <FormLabel>
-                          Tindakan <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
-                          {actionOptions.map(function (option) { return (<FormField key={option.id} control={form.control} name="actions" render={function (_a) {
-                    var _b, _c;
-                    var field = _a.field;
-                    return (<FormItem className="flex flex-row items-center space-x-0 space-y-0">
-                                  <FormControl>
-                                    <Checkbox id={option.id} checked={(_b = field.value) === null || _b === void 0 ? void 0 : _b.includes(option.id)} onCheckedChange={function (checked) {
-                            var _a;
-                            return checked
-                                ? field.onChange(__spreadArray(__spreadArray([], (field.value || []), true), [option.id], false))
-                                : field.onChange((_a = field.value) === null || _a === void 0 ? void 0 : _a.filter(function (value) { return value !== option.id; }));
-                        }} className="sr-only"/>
-                                  </FormControl>
-                                  <FormLabel htmlFor={option.id} className={"flex-1 px-3 py-2 text-center border rounded-md cursor-pointer transition-all duration-300 text-sm font-medium ".concat(((_c = field.value) === null || _c === void 0 ? void 0 : _c.includes(option.id))
-                            ? "bg-blue-600 text-white border-blue-600 transform scale-105"
-                            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-300")}>
-                                    {option.label}
-                                  </FormLabel>
-                                </FormItem>);
-                }}/>); })}
-                        </div>
-                        <FormMessage />
-                      </FormItem>); }}/>
-
-                  {/* Other Actions */}
-                  <FormField control={form.control} name="otherActions" render={function (_a) {
-            var field = _a.field;
-            return (<FormItem>
-                        <FormLabel>
-                          Tindakan Lainnya <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input placeholder="Sebutkan tindakan lainnya..." {...field} className="focus:ring-2 focus:ring-blue-500 transition-all duration-300"/>
-                        </FormControl>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          * Pilih minimal satu tindakan di atas atau isi tindakan lainnya
-                        </p>
-                        <FormMessage />
-                      </FormItem>);
-        }}/>
-
-
-
-                  {/* Action Buttons */}
-                  <motion.div className="flex justify-center pt-4 sm:pt-6 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-                    <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-                      <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg transition-all duration-300 hover:shadow-lg flex items-center">
-                        <Save className="mr-2 h-4 w-4"/>
-                        {isSubmitting ? "Menyimpan..." : "Submit Data"}
-                      </Button>
-                    </motion.div>
-                  </motion.div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    </main>);
+            </div>
+        </main>
+    );
 }
