@@ -233,6 +233,7 @@ export default function SearchPatient() {
                             </Badge>
                           </div>
                           <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {/* Konsisten dengan Dashboard: tampilkan '-' jika kosong */}
                             {entry.otherActions && entry.otherActions.trim() !== '' ? entry.otherActions : '-'}
                           </div>
                         </div>

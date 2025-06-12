@@ -92,10 +92,9 @@ export default function Dashboard() {
     mutationFn: async (id: number) => {
       // Pertama, dapatkan data entry yang akan dihapus untuk dikirim ke Google Sheets
       const entryToDelete = dailyVisits?.find(visit => visit.id === id);
-      
       // Hapus dari database lokal
-      const response = await apiRequest("DELETE", `/api/data-entries/${id}`);
-      
+      // FIX: Gunakan query param agar backend menerima id
+      const response = await apiRequest("DELETE", `/api/data-entries?id=${id}`);
       // Jika berhasil dihapus dari database dan data entry ditemukan, hapus juga dari Google Sheets
       if (response.ok && entryToDelete) {
         try {
@@ -243,10 +242,8 @@ export default function Dashboard() {
     Object.entries(stats.actionDistribution)
       .reduce((acc, [key, value]) => {
         const name = actionLabels[key] || key;
-        const existing = acc.find(item => item.name === name);
-        if (existing) {
-          existing.value += value;
-        } else {
+        // Pastikan hanya satu entry per tindakan (hilangkan duplikat)
+        if (!acc.some(item => item.name === name)) {
           acc.push({ name, value });
         }
         return acc;
