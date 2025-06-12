@@ -99,7 +99,8 @@ export default function Dashboard() {
     mutationFn: async (id: number) => {
       try {
         const entryToDelete = dailyVisits?.find(visit => visit.id === id);
-        const response = await apiRequest("DELETE", `/api/data-entries?id=${id}`);
+        // Use RESTful path for DELETE
+        const response = await apiRequest("DELETE", `/api/data-entries/${id}`);
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`Gagal hapus data: ${errorText}`);
@@ -246,11 +247,11 @@ export default function Dashboard() {
       data.female = Number(data.female);
     });
   }
+  // Ensure pieChartData has no duplicate action names (sum values)
   const pieChartData = stats?.actionDistribution ?
     Array.from(
       Object.entries(stats.actionDistribution).reduce((uniqueData, [key, value]) => {
         const name = actionLabels[key] || key;
-        // If this name already exists, add the value to it, otherwise create a new entry
         if (uniqueData.has(name)) {
           uniqueData.set(name, uniqueData.get(name)! + value);
         } else {
@@ -607,26 +608,22 @@ export default function Dashboard() {
                         labelStyle={{ fontWeight: 'bold', color: '#111827' }}
                       />
                       <Legend 
-                        verticalAlign="top" 
-                        height={36} 
-                        iconType="circle"
-                        wrapperStyle={{ paddingTop: '10px' }}
+                        verticalAlign="top"
+                        wrapperStyle={{ paddingBottom: 10 }}
                       />
                       <Line 
-                        type="monotone"
-                        dataKey="male"
-                        stroke="#0066CC"
+                        type="monotone" 
+                        dataKey="male" 
+                        stroke="#0066CC" 
                         strokeWidth={2}
                         dot={false}
-                        activeDot={{ r: 4 }}
                       />
                       <Line 
-                        type="monotone"
-                        dataKey="female"
-                        stroke="#D5006D"
+                        type="monotone" 
+                        dataKey="female" 
+                        stroke="#EF4444" 
                         strokeWidth={2}
                         dot={false}
-                        activeDot={{ r: 4 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
