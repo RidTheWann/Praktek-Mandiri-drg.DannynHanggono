@@ -101,13 +101,13 @@ export default async function handler(req, res) {
     }
     
     // DELETE - Delete entry by id
-    if (req.method === "DELETE") {
+    if (req.method === "DELETE" && req.url.match(/\/api\/data-entries\/[0-9]+$/)) {
       const id = req.url.split("/").pop();
       if (!id) {
         return res.status(400).json({ error: "Missing id for delete" });
       }
       // Hapus dari database dan Google Sheets
-      const deleted = await combinedStorage.deleteDataEntry(id);
+      const deleted = await combinedStorage.deleteDataEntry(Number(id));
       return res.status(200).json({ success: true, deleted });
     }
     

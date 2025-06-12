@@ -188,12 +188,13 @@ export default function SearchPatient() {
                 filteredEntries.length > 0 ? (
                   <div className="space-y-4 overflow-x-auto">
                     {/* Table Header */}
-                    <div className="grid grid-cols-5 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-300 min-w-[800px]">
+                    <div className="grid grid-cols-6 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-300 min-w-[900px]">
                       <div>Tanggal</div>
                       <div>Nama Pasien</div>
                       <div>No. RM</div>
                       <div>Tindakan</div>
                       <div>Biaya</div>
+                      <div>Lainnya</div>
                     </div>
                     
                     {/* Table Content */}
@@ -201,7 +202,7 @@ export default function SearchPatient() {
                       {filteredEntries.map((entry) => (
                         <div
                           key={entry.id}
-                          className="grid grid-cols-5 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors items-center min-w-[800px]"
+                          className="grid grid-cols-6 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors items-center min-w-[900px]"
                           onClick={() => window.location.href = `/data-harian?edit=${entry.id}`}
                           style={{ cursor: 'pointer' }}
                         >
@@ -230,6 +231,9 @@ export default function SearchPatient() {
                             <Badge variant={entry.paymentType === 'BPJS' ? 'default' : 'secondary'}>
                               {entry.paymentType}
                             </Badge>
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {entry.otherActions && entry.otherActions.trim() !== '' ? entry.otherActions : '-'}
                           </div>
                         </div>
                       ))}

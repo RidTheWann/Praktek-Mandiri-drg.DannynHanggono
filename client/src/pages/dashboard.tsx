@@ -239,16 +239,27 @@ export default function Dashboard() {
       data.female = Number(data.female);
     });
   }
-  const pieChartData = stats?.actionDistribution ? 
-    Object.entries(stats.actionDistribution).map(([key, value]) => ({
-      name: actionLabels[key] || key,
-      value: value
-    })) : [];
+  const pieChartData = stats?.actionDistribution ?
+    Object.entries(stats.actionDistribution)
+      .reduce((acc, [key, value]) => {
+        const name = actionLabels[key] || key;
+        const existing = acc.find(item => item.name === name);
+        if (existing) {
+          existing.value += value;
+        } else {
+          acc.push({ name, value });
+        }
+        return acc;
+      }, [] as { name: string, value: number }[])
+    : [];
 
   const paymentPieData = [
     { name: 'BPJS', value: stats?.paymentTypes?.bpjs || 0 },
     { name: 'UMUM', value: stats?.paymentTypes?.umum || 0 }
   ];
+
+  // Deklarasi sortedDailyVisits sebelum digunakan di render
+  const sortedDailyVisits: DataEntry[] = (dailyVisits || []).slice().sort((a, b) => Number(b.id) - Number(a.id));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -334,7 +345,8 @@ export default function Dashboard() {
                   
                   {/* Table Content */}
                   <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                    {dailyVisits.map((visit) => (
+                    {/* Tipe data untuk visit dan index pada map */}
+                    {sortedDailyVisits.map((visit: DataEntry, index: number) => (
                       <div
                         key={visit.id}
                         className="grid grid-cols-7 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors items-center min-w-[800px]"
@@ -354,7 +366,8 @@ export default function Dashboard() {
                           {visit.medicalRecordNumber || '-'}
                         </div>
                         <div className="flex flex-wrap gap-1 max-w-[120px]">
-                          {Array.isArray(visit.actions) && visit.actions.length > 0 ? visit.actions.map((action, index) => (
+                          {/* Tipe data untuk action dan index pada map */}
+                          {Array.isArray(visit.actions) && visit.actions.length > 0 ? visit.actions.map((action: string, index: number) => (
                             <Badge key={index} variant="secondary" className="text-xs mb-1">
                               {actionLabels[action] || action}
                             </Badge>
@@ -593,26 +606,20 @@ export default function Dashboard() {
                         wrapperStyle={{ paddingTop: '10px' }}
                       />
                       <Line 
-                        type="monotone" 
-                        dataKey="male" 
-                        stroke="#3b82f6" 
-                        name="Laki-laki" 
-                        strokeWidth={3} 
-                        isAnimationActive={true}
-                        animationDuration={1800}
-                        animationEasing="ease-in-out"
-                        dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#ffffff' }}
+                        type="monotone"
+                        dataKey="male"
+                        stroke="#0066CC"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4 }}
                       />
                       <Line 
-                        type="monotone" 
-                        dataKey="female" 
-                        stroke="#f472b6" 
-                        name="Perempuan" 
-                        strokeWidth={3} 
-                        isAnimationActive={true}
-                        animationDuration={1800}
-                        animationEasing="ease-in-out"
-                        dot={{ r: 4, fill: '#f472b6', strokeWidth: 2, stroke: '#ffffff' }}
+                        type="monotone"
+                        dataKey="female"
+                        stroke="#D5006D"
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 4 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
