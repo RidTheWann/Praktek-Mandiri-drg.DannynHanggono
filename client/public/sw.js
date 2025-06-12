@@ -3,8 +3,8 @@ const CACHE_NAME = 'praktek-mandiri-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/assets/index.css',
-  '/assets/index.js'
+  '/assets/index-BZeoJwao.css',
+  '/assets/index-CbXZ2Jq7.js'
 ];
 
 // Install event - cache assets
