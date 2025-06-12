@@ -101,6 +101,7 @@ export default function Dashboard() {
       const entryToDelete = dailyVisits?.find(visit => visit.id === id);
       // Hapus dari database lokal
       // FIX: Gunakan query param agar backend menerima id
+      // Gunakan query parameter untuk ID, bukan path parameter
       const response = await apiRequest("DELETE", `/api/data-entries?id=${id}`);
       // Jika berhasil dihapus dari database dan data entry ditemukan, hapus juga dari Google Sheets
       if (response.ok && entryToDelete) {

@@ -190,7 +190,7 @@ export default function DataHarian() {
       // API request
       if (isEditMode && originalIdentifiers) {
         promises.push(
-          apiRequest("PUT", `/api/data-entries/${searchParams.get("edit")}` , data).then(res => res.json())
+          apiRequest("PUT", `/api/data-entries?id=${searchParams.get("edit")}`, data).then(res => res.json())
         );
       } else {
         promises.push(
