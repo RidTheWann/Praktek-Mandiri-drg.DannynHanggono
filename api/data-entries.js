@@ -64,6 +64,17 @@ export default async function handler(req, res) {
       return res.json(entries);
     }
     
+    // GET single entry by id for edit mode
+    if (req.method === "GET" && req.url.match(/\/api\/data-entries\/[0-9]+$/)) {
+      const id = req.url.split("/").pop();
+      const entries = await combinedStorage.getDataEntries();
+      const entry = entries.find(e => String(e.id) === String(id));
+      if (!entry) {
+        return res.status(404).json({ error: "Entry not found" });
+      }
+      return res.json(entry);
+    }
+    
     // POST - Create new entry
     if (req.method === "POST") {
       const result = insertDataEntrySchema.safeParse(req.body);
@@ -76,6 +87,17 @@ export default async function handler(req, res) {
       
       const newEntry = await combinedStorage.createDataEntry(result.data);
       return res.status(201).json(newEntry);
+    }
+    
+    // DELETE - Delete entry by id
+    if (req.method === "DELETE") {
+      const id = req.url.split("/").pop();
+      if (!id) {
+        return res.status(400).json({ error: "Missing id for delete" });
+      }
+      // Hapus dari database dan Google Sheets
+      const deleted = await combinedStorage.deleteDataEntry(id);
+      return res.status(200).json({ success: true, deleted });
     }
     
     return res.status(405).json({ error: "Method Not Allowed" });

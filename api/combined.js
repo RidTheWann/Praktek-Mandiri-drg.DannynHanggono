@@ -54,28 +54,14 @@ export const combinedStorage = {
     }
   },
 
-  // Delete entry from both database and Google Sheets
+  // Delete entry in both database and Google Sheets
   async deleteDataEntry(id) {
     try {
-      // First get the entry to be deleted
-      const entries = await getAllEntries();
-      const entryToDelete = entries.find(entry => entry.id === id);
-      
-      if (!entryToDelete) {
-        return null;
-      }
-      
-      // Delete from database
-      const deletedEntry = await deleteEntry(id);
-      
-      if (!deletedEntry) {
-        return null;
-      }
-      
+      // First delete from database
+      const deleted = await deleteEntry(id);
       // Then delete from Google Sheets
-      await deleteFromGoogleSheets(entryToDelete);
-      
-      return deletedEntry;
+      await deleteFromGoogleSheets(id);
+      return deleted;
     } catch (error) {
       console.error('Error deleting entry:', error);
       throw error;
