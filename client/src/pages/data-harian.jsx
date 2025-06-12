@@ -117,21 +117,32 @@ export default function DataHarian() {
         if (editId) {
             const loadEditData = async () => {
                 try {
-                    const response = await apiRequest("GET", `/api/data-entries?id=${editId}`);
+                    // Fetch all entries first
+                    const response = await apiRequest("GET", "/api/data-entries");
                     const entries = await response.json();
                     
                     if (entries && entries.length > 0) {
-                        const entry = entries.find(e => e.id === editId) || entries[0];
-                        form.reset({
-                            date: entry.date,
-                            patientName: entry.patientName,
-                            medicalRecordNumber: entry.medicalRecordNumber,
-                            gender: entry.gender,
-                            paymentType: entry.paymentType,
-                            actions: entry.actions || [],
-                            otherActions: entry.otherActions || "",
-                            description: entry.description || "",
-                        });
+                        // Find the specific entry by ID
+                        const entry = entries.find(e => e.id === editId);
+                        
+                        if (entry) {
+                            form.reset({
+                                date: entry.date,
+                                patientName: entry.patientName,
+                                medicalRecordNumber: entry.medicalRecordNumber,
+                                gender: entry.gender,
+                                paymentType: entry.paymentType,
+                                actions: entry.actions || [],
+                                otherActions: entry.otherActions || "",
+                                description: entry.description || "",
+                            });
+                        } else {
+                            toast({
+                                title: "Error",
+                                description: "Data yang ingin diedit tidak ditemukan",
+                                variant: "destructive",
+                            });
+                        }
                     }
                 } catch (error) {
                     console.error("Error loading edit data:", error);

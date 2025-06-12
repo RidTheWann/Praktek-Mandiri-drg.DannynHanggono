@@ -96,7 +96,11 @@ export default function Dashboard() {
     queryKey: ["/api/daily-visits", selectedDate],
     queryFn: () => apiRequest("GET", `/api/daily-visits?date=${selectedDate}`)
       .then(res => res.json())
-      .then(data => formatDailyVisits(data)),
+      .then(data => {
+        // Format data and sort by createdAt in descending order (newest first)
+        const formattedData = formatDailyVisits(data);
+        return formattedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }),
     refetchInterval: 2000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -249,11 +253,21 @@ export default function Dashboard() {
     });
   }
 
+  // Prepare pie chart data and remove duplicates by using a Map
   const pieChartData = stats?.actionDistribution ?
-    Object.entries(stats.actionDistribution).map(([key, value]) => ({
-      name: actionLabels[key] || key,
-      value: value
-    })) : [];
+    Array.from(
+      Object.entries(stats.actionDistribution).reduce((uniqueData, [key, value]) => {
+        const name = actionLabels[key] || key;
+        // If this name already exists, add the value to it, otherwise create a new entry
+        if (uniqueData.has(name)) {
+          uniqueData.set(name, uniqueData.get(name) + value);
+        } else {
+          uniqueData.set(name, value);
+        }
+        return uniqueData;
+      }, new Map())
+    ).map(([name, value]) => ({ name, value }))
+    : [];
 
   const paymentPieData = [
     { name: 'BPJS', value: stats?.bpjsCount || stats?.paymentTypes?.bpjs || 0 },

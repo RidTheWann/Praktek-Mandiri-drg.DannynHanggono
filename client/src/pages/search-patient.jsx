@@ -37,7 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Search, ArrowLeft, Users, FileText } from "lucide-react";
+import { Search, ArrowLeft, Users, FileText, Edit } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -177,17 +177,18 @@ export default function SearchPatient() {
                     </div>); })}
                 </div>) : shouldFetch ? (filteredEntries.length > 0 ? (<div className="space-y-4 overflow-x-auto">
                     {/* Table Header */}
-                    <div className="grid grid-cols-5 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-300 min-w-[800px]">
+                    <div className="grid grid-cols-6 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg font-medium text-sm text-gray-600 dark:text-gray-300 min-w-[800px]">
                       <div>Tanggal</div>
                       <div>Nama Pasien</div>
                       <div>No. RM</div>
                       <div>Tindakan</div>
                       <div>Biaya</div>
+                      <div>Lainnya</div>
                     </div>
                     
                     {/* Table Content */}
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                      {filteredEntries.map(function (entry) { return (<div key={entry.id} className="grid grid-cols-5 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors items-center min-w-[800px]" onClick={function () { return window.location.href = "/data-harian?edit=".concat(entry.id); }} style={{ cursor: 'pointer' }}>
+                      {filteredEntries.map(function (entry) { return (<div key={entry.id} className="grid grid-cols-6 gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors items-center min-w-[800px]" onClick={function () { return window.location.href = "/data-harian?edit=".concat(entry.id); }} style={{ cursor: 'pointer' }}>
                           <div className="text-sm text-gray-900 dark:text-white">
                             {new Date(entry.date).toLocaleDateString('id-ID')}
                           </div>
@@ -203,7 +204,7 @@ export default function SearchPatient() {
                             {entry.medicalRecordNumber}
                           </div>
                           <div className="flex flex-wrap gap-1 max-w-[120px]">
-                            {entry.actions.map(function (action, index) { return (<Badge key={index} variant="secondary" className="text-xs mb-1">
+                            {Array.isArray(entry.actions) && entry.actions.map(function (action, index) { return (<Badge key={index} variant="secondary" className="text-xs mb-1">
                                 {actionLabels[action] || action}
                               </Badge>); })}
                           </div>
@@ -211,6 +212,9 @@ export default function SearchPatient() {
                             <Badge variant={entry.paymentType === 'BPJS' ? 'default' : 'secondary'}>
                               {entry.paymentType}
                             </Badge>
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {entry.otherActions || '-'}
                           </div>
                         </div>); })}
                     </div>
