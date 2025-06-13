@@ -201,11 +201,11 @@ export default function Dashboard() {
     });
   }
   const pieChartData = stats?.actionDistribution ?
-    ACTION_ORDER.map(key => ({
-      name: actionLabels[key] || key,
-      value: stats.actionDistribution[key] || 0
-    }))
-    : [];
+  ACTION_ORDER.map(key => ({
+    name: actionLabels[key] || key,
+    value: stats.actionDistribution[key] || 0
+  }))
+  : [];
 
   const paymentPieData = [
     { name: 'BPJS', value: stats?.paymentTypes?.bpjs || 0 },
