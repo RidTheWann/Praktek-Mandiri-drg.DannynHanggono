@@ -55,7 +55,7 @@ function writeData(data: DataStorage): boolean {
 // Format entry to ensure all fields are present
 function formatEntry(entry: Partial<DataEntry>): DataEntry {
   return {
-    id: entry.id || Date.now(),
+    id: entry.id !== undefined ? entry.id : -1, // -1 sebagai placeholder jika belum ada id dari DB
     date: entry.date || new Date().toISOString().split('T')[0],
     patientName: entry.patientName || 'Tidak ada nama',
     medicalRecordNumber: entry.medicalRecordNumber || '-',
@@ -91,10 +91,9 @@ export const storage = {
     const data = readData();
     const newEntry = formatEntry({
       ...entry,
-      id: Date.now(),
+      // id: Date.now(), // HAPUS baris ini, biarkan id undefined
       createdAt: new Date().toISOString()
     });
-    
     data.entries.push(newEntry);
     writeData(data);
     return newEntry;
