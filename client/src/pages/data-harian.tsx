@@ -243,6 +243,8 @@ export default function DataHarian() {
       });
       return;
     }
+    
+    // Tidak perlu menambahkan ID manual, biarkan database yang mengelola ID
     submitMutation.mutate(data);
   };
 
