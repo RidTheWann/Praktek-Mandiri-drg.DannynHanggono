@@ -1,5 +1,7 @@
 # Praktek Mandiri
 
+![Vercel Deploy](https://vercel.com/button)
+
 Aplikasi Praktek Mandiri drg. Danny Hanggono untuk manajemen data pasien.
 
 ## Fitur
@@ -51,6 +53,29 @@ GOOGLE_CREDENTIALS={ "type": "service_account", "project_id": "your-project-id",
    ```
    npm run build
    ```
+
+## Deployment
+
+Deploy otomatis ke Vercel dengan push ke branch utama. Pastikan environment variable sudah diatur di dashboard Vercel.
+
+1. Klik tombol deploy di bawah untuk deploy instan:
+
+[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/username/repo)
+
+2. Atau clone repo dan deploy manual:
+
+```bash
+git clone https://github.com/username/repo.git
+cd repo
+vercel
+```
+
+## Best Practices
+- Gunakan environment variable, jangan hardcode credential.
+- Pastikan file `.env` tidak di-commit.
+- Struktur folder konsisten dan modular.
+- Tambahkan komentar pada kode penting.
+- Gunakan branch untuk fitur/bugfix.
 
 ## Struktur Proyek
 

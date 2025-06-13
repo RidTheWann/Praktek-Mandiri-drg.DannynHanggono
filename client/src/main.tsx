@@ -1,3 +1,8 @@
+// Main entry point for Praktek Mandiri Frontend
+// Author: drg. Danny Hanggono
+// Last updated: 2025-06-13
+// Professional React app bootstrap
+
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
