@@ -35,7 +35,6 @@ function writeData(data) {
 // Format entry to ensure all fields are present
 function formatEntry(entry) {
   return {
-    id: entry.id || Date.now(),
     date: entry.date || new Date().toISOString().split('T')[0],
     patientName: entry.patientName || 'Tidak ada nama',
     medicalRecordNumber: entry.medicalRecordNumber || '-',
@@ -71,7 +70,6 @@ export const storage = {
     const data = readData();
     const newEntry = formatEntry({
       ...entry,
-      id: Date.now(),
       createdAt: new Date().toISOString()
     });
     

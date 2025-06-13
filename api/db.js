@@ -88,16 +88,14 @@ export async function getEntriesByDateRange(startDate, endDate) {
 // Add new entry
 export async function addEntry(entry) {
   try {
-    const id = Date.now();
     const result = await pool.query(`
       INSERT INTO data_entries (
-        id, date, patient_name, medical_record_number, 
+        date, patient_name, medical_record_number, 
         gender, payment_type, actions, other_actions, description
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `, [
-      id,
       entry.date,
       entry.patientName,
       entry.medicalRecordNumber,
@@ -123,7 +121,7 @@ export async function addEntry(entry) {
     };
   } catch (error) {
     console.error('Error adding entry:', error);
-    throw error;
+    return null;
   }
 }
 

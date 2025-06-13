@@ -91,7 +91,6 @@ export const storage = {
     const data = readData();
     const newEntry = formatEntry({
       ...entry,
-      // id: Date.now(), // HAPUS baris ini, biarkan id undefined
       createdAt: new Date().toISOString()
     });
     data.entries.push(newEntry);
