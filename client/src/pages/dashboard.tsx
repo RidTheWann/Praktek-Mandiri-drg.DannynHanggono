@@ -393,8 +393,9 @@ export default function Dashboard() {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => {
-                              // Redirect ke halaman edit dengan ID data
-                              window.location.href = `/data-harian?edit=${visit.id}`;
+                              // Pastikan visit.id bertipe number
+                              const id = typeof visit.id === 'string' ? parseInt(visit.id) : visit.id;
+                              window.location.href = `/data-harian?edit=${id}`;
                             }}
                           >
                             <Edit className="h-3 w-3" />
@@ -403,7 +404,11 @@ export default function Dashboard() {
                             size="sm"
                             variant="outline"
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                            onClick={() => deleteMutation.mutate(visit.id)}
+                            onClick={() => {
+                              // Pastikan visit.id bertipe number
+                              const id = typeof visit.id === 'string' ? parseInt(visit.id) : visit.id;
+                              deleteMutation.mutate(id);
+                            }}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>

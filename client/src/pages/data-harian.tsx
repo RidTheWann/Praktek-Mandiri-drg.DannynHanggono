@@ -67,7 +67,11 @@ export default function DataHarian() {
         .then(res => res.json())
         .then(entries => {
           if (Array.isArray(entries)) {
-            const entry = entries.find(e => e.id === parseInt(editId));
+            // Cari entry dengan id number atau string (untuk robust)
+            let entry = entries.find(e => e.id === parseInt(editId));
+            if (!entry) {
+              entry = entries.find(e => e.id?.toString() === editId);
+            }
             if (entry) {
               form.reset({
                 date: entry.date,
@@ -85,11 +89,11 @@ export default function DataHarian() {
                 medicalRecordNumber: entry.medicalRecordNumber,
               });
             } else {
-              toast({ title: "Error", description: "Data yang ingin diedit tidak ditemukan", variant: "destructive" });
+              toast({ title: "Error", description: `Data dengan ID ${editId} tidak ditemukan di database. Pastikan data sudah tersinkronisasi.`, variant: "destructive" });
               navigate("/data-harian");
             }
           } else {
-            toast({ title: "Error", description: "Format data tidak valid", variant: "destructive" });
+            toast({ title: "Error", description: "Format data tidak valid dari API", variant: "destructive" });
             navigate("/data-harian");
           }
         })
