@@ -41,14 +41,9 @@ export async function submitToGoogleSheets(data: any, isUpdate = false, id?: num
     });
     
     // Add update info if needed
-    if (isUpdate) {
-      mappedFormObject["action"] = "edit";
-      // Add original identifiers for edit operation
-      if (data.originalIdentifiers) {
-        mappedFormObject["Tanggal Kunjungan_asli"] = data.originalIdentifiers.date;
-        mappedFormObject["Nama Pasien_asli"] = data.originalIdentifiers.patientName;
-        mappedFormObject["No.RM_asli"] = data.originalIdentifiers.medicalRecordNumber;
-      }
+    if (isUpdate && id) {
+      mappedFormObject["id"] = id.toString();
+      mappedFormObject["action"] = "update";
     }
     
     // Create URL-encoded form data
@@ -87,10 +82,23 @@ export async function deleteFromGoogleSheets(entry: any) {
     // Map data for deletion
     const mappedFormObject: Record<string, string> = {
       "action": "delete",
+      "id": entry.id.toString(),
       "Tanggal Kunjungan": entry.date,
       "Nama Pasien": entry.patientName,
-      "No.RM": entry.medicalRecordNumber || "-"
+      "No.RM": entry.medicalRecordNumber,
+      "Kelamin": entry.gender,
+      "Biaya": entry.paymentType,
+      "Lainnya": entry.otherActions || ""
     };
+    
+    // Add actions
+    actionOptions.forEach(option => {
+      if (entry.actions && entry.actions.includes(option.id)) {
+        mappedFormObject[option.label] = "Yes";
+      } else {
+        mappedFormObject[option.label] = "No";
+      }
+    });
     
     // Create URL-encoded form data
     const formData = new URLSearchParams();

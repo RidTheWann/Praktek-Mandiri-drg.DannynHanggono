@@ -8,17 +8,6 @@ const pool = new Pool({
   }
 });
 
-// Action options mapping for consistent format
-export const actionOptions = [
-  { id: "obat", label: "Obat" },
-  { id: "cabut-anak", label: "Cabut Anak" },
-  { id: "cabut-dewasa", label: "Cabut Dewasa" },
-  { id: "tambal-sementara", label: "Tambal Sementara" },
-  { id: "tambal-tetap", label: "Tambal Tetap" },
-  { id: "scaling", label: "Scaling" },
-  { id: "rujuk", label: "Rujuk" },
-];
-
 // Initialize database by creating tables if they don't exist
 export async function initDatabase() {
   try {
@@ -99,13 +88,6 @@ export async function getEntriesByDateRange(startDate: string, endDate: string) 
 // Add new entry
 export async function addEntry(entry: any) {
   try {
-    // Normalize actions format to match existing data
-    const normalizedActions = entry.actions?.map((action: string) => {
-      // Find the matching action option and use its label
-      const option = actionOptions.find(opt => opt.id === action);
-      return option ? option.label : action;
-    }) || [];
-    
     const result = await pool.query(`
       INSERT INTO data_entries (
         date, patient_name, medical_record_number, 
@@ -119,7 +101,7 @@ export async function addEntry(entry: any) {
       entry.medicalRecordNumber,
       entry.gender,
       entry.paymentType,
-      normalizedActions,
+      entry.actions,
       entry.otherActions || '',
       entry.description || ''
     ]);
@@ -146,13 +128,6 @@ export async function addEntry(entry: any) {
 // Update existing entry
 export async function updateEntry(id: number, entry: any) {
   try {
-    // Normalize actions format to match existing data
-    const normalizedActions = entry.actions?.map((action: string) => {
-      // Find the matching action option and use its label
-      const option = actionOptions.find(opt => opt.id === action);
-      return option ? option.label : action;
-    }) || [];
-    
     const result = await pool.query(`
       UPDATE data_entries
       SET 
@@ -172,7 +147,7 @@ export async function updateEntry(id: number, entry: any) {
       entry.medicalRecordNumber,
       entry.gender,
       entry.paymentType,
-      normalizedActions,
+      entry.actions,
       entry.otherActions || '',
       entry.description || '',
       id
