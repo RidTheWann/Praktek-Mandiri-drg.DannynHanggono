@@ -119,6 +119,9 @@ export default function DataHarian() {
       setIsSubmitting(true);
       const promises = [];
 
+      // Log data yang dikirim ke backend
+      console.log("[DEBUG] Payload POST ke backend:", data);
+
       // Promise untuk Web3 submission (jika terhubung)
       if (web3Provider.isConnected) {
         promises.push(
@@ -200,7 +203,9 @@ export default function DataHarian() {
       await Promise.allSettled(promises);
       return promises[promises.length - 1];
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Log data yang diterima dari backend (termasuk id)
+      console.log("[DEBUG] Response dari backend:", result);
       clearForm();
       setIsEditMode(false);
       setOriginalIdentifiers(null);
