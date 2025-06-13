@@ -97,68 +97,66 @@ export default function Dashboard() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      try {
-        const entryToDelete = dailyVisits?.find(visit => visit.id === id);
-        // Use RESTful path for DELETE
-        const response = await apiRequest("DELETE", `/api/data-entries/${id}`);
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Gagal hapus data: ${errorText}`);
-        }
-        if (entryToDelete) {
-          try {
-            const mappedFormObject: { [key: string]: string | undefined } = {
-              "action": "delete",
-              "id": entryToDelete.id.toString(),
-              "Tanggal Kunjungan": entryToDelete.date,
-              "Nama Pasien": entryToDelete.patientName,
-              "No.RM": entryToDelete.medicalRecordNumber,
-              "Kelamin": entryToDelete.gender,
-              "Biaya": entryToDelete.paymentType,
-              "Lainnya": entryToDelete.otherActions || ""
-            };
-            Object.keys(actionLabels).forEach(actionId => {
-              if (entryToDelete.actions && entryToDelete.actions.includes(actionId)) {
-                mappedFormObject[actionLabels[actionId]] = "Yes";
-              } else {
-                mappedFormObject[actionLabels[actionId]] = "No";
-              }
-            });
-            const sheetsResponse = await fetch(
-              "https://script.google.com/macros/s/AKfycbxnyacmLOW4Ts93_S56wLJj1i4eT76sm1SvJhXu8w-MAmyAtj9DPtoaY28mvD9OkmD2/exec",
-              {
-                method: "POST",
-                body: new URLSearchParams(Object.entries(mappedFormObject).reduce((acc, [key, value]) => ({
-                  ...acc,
-                  [key]: value ?? ''
-                }), {} as Record<string, string>)),
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              }
-            );
-            const sheetsData = await sheetsResponse.json();
-            if (sheetsData.result !== "success") {
-              console.error("Gagal menghapus data dari Google Sheets:", sheetsData.message);
-              toast({
-                title: "Error",
-                description: "Gagal menghapus data dari Google Sheets",
-                variant: "destructive"
-              });
+      // Pertama, dapatkan data entry yang akan dihapus untuk dikirim ke Google Sheets
+      const entryToDelete = dailyVisits?.find(visit => visit.id === id);
+      // Hapus dari database lokal
+      // FIX: Gunakan query param agar backend menerima id
+      const response = await apiRequest("DELETE", `/api/data-entries?id=${id}`);
+      // Jika berhasil dihapus dari database dan data entry ditemukan, hapus juga dari Google Sheets
+      if (response.ok && entryToDelete) {
+        try {
+          // Mapping data untuk dikirim ke Google Sheets dengan flag delete
+          // Pastikan menggunakan No.Antrean sebagai ID untuk Google Sheets
+          const mappedFormObject: { [key: string]: string | undefined } = {
+            "action": "delete",
+            "id": entryToDelete.id.toString(), // Using entry ID as identifier for Google Sheets
+            "Tanggal Kunjungan": entryToDelete.date,
+            "Nama Pasien": entryToDelete.patientName,
+            "No.RM": entryToDelete.medicalRecordNumber,
+            "Kelamin": entryToDelete.gender,
+            "Biaya": entryToDelete.paymentType,
+            "Lainnya": entryToDelete.otherActions || ""
+          };
+
+          // Add selected actions to mappedFormObject
+          Object.keys(actionLabels).forEach(actionId => {
+            if (entryToDelete.actions && entryToDelete.actions.includes(actionId)) {
+              mappedFormObject[actionLabels[actionId]] = "Yes";
             } else {
-              console.log("Data berhasil dihapus dari Google Sheets");
+              mappedFormObject[actionLabels[actionId]] = "No";
             }
-          } catch (sheetError) {
-            console.error("Error saat menghapus dari Google Sheets:", sheetError);
+          });
+      
+          // Kirim data ke Google Sheets menggunakan Apps Script
+          const sheetsResponse = await fetch(
+            "https://script.google.com/macros/s/AKfycbxnyacmLOW4Ts93_S56wLJj1i4eT76sm1SvJhXu8w-MAmyAtj9DPtoaY28mvD9OkmD2/exec",
+            {
+              method: "POST",
+              body: new URLSearchParams(Object.entries(mappedFormObject).reduce((acc, [key, value]) => ({
+                ...acc,
+                [key]: value ?? ''
+              }), {} as Record<string, string>)),
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            }
+          );
+      
+          const sheetsData = await sheetsResponse.json();
+          if (sheetsData.result !== "success") {
+            console.error("Gagal menghapus data dari Google Sheets:", sheetsData.message);
+            toast({
+              title: "Error",
+              description: "Gagal menghapus data dari Google Sheets",
+              variant: "destructive"
+            });
+          } else {
+            console.log("Data berhasil dihapus dari Google Sheets");
           }
+        } catch (sheetError) {
+          console.error("Error saat menghapus dari Google Sheets:", sheetError);
         }
-        return response.json();
-      } catch (err: any) {
-        toast({
-          title: "Error",
-          description: err.message || "Gagal menghapus data",
-          variant: "destructive"
-        });
-        throw err;
       }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -247,11 +245,11 @@ export default function Dashboard() {
       data.female = Number(data.female);
     });
   }
-  // Ensure pieChartData has no duplicate action names (sum values)
   const pieChartData = stats?.actionDistribution ?
     Array.from(
       Object.entries(stats.actionDistribution).reduce((uniqueData, [key, value]) => {
         const name = actionLabels[key] || key;
+        // If this name already exists, add the value to it, otherwise create a new entry
         if (uniqueData.has(name)) {
           uniqueData.set(name, uniqueData.get(name)! + value);
         } else {
@@ -608,22 +606,26 @@ export default function Dashboard() {
                         labelStyle={{ fontWeight: 'bold', color: '#111827' }}
                       />
                       <Legend 
-                        verticalAlign="top"
-                        wrapperStyle={{ paddingBottom: 10 }}
+                        verticalAlign="top" 
+                        height={36} 
+                        iconType="circle"
+                        wrapperStyle={{ paddingTop: '10px' }}
                       />
                       <Line 
-                        type="monotone" 
-                        dataKey="male" 
-                        stroke="#0066CC" 
+                        type="monotone"
+                        dataKey="male"
+                        stroke="#0066CC"
                         strokeWidth={2}
                         dot={false}
+                        activeDot={{ r: 4 }}
                       />
                       <Line 
-                        type="monotone" 
-                        dataKey="female" 
-                        stroke="#EF4444" 
+                        type="monotone"
+                        dataKey="female"
+                        stroke="#D5006D"
                         strokeWidth={2}
                         dot={false}
+                        activeDot={{ r: 4 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>

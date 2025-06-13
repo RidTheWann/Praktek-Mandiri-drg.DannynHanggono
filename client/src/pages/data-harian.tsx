@@ -62,33 +62,39 @@ export default function DataHarian() {
     const editId = searchParams.get("edit");
     if (editId) {
       setIsEditMode(true);
-      // Use RESTful path for single entry fetch
-      apiRequest("GET", `/api/data-entries/${editId}`)
+      // Fetch all entries first to find the specific entry by ID
+      apiRequest("GET", "/api/data-entries")
         .then(res => res.json())
-        .then(entry => {
-          if (entry && entry.id) {
-            form.reset({
-              date: entry.date,
-              patientName: entry.patientName,
-              medicalRecordNumber: entry.medicalRecordNumber,
-              gender: entry.gender,
-              paymentType: entry.paymentType,
-              actions: Array.isArray(entry.actions) ? entry.actions : [],
-              otherActions: entry.otherActions || "",
-              description: entry.description || "",
-            });
-            setOriginalIdentifiers({
-              date: entry.date,
-              patientName: entry.patientName,
-              medicalRecordNumber: entry.medicalRecordNumber,
-            });
+        .then(entries => {
+          if (Array.isArray(entries)) {
+            const entry = entries.find(e => e.id === parseInt(editId));
+            if (entry) {
+              form.reset({
+                date: entry.date,
+                patientName: entry.patientName,
+                medicalRecordNumber: entry.medicalRecordNumber,
+                gender: entry.gender,
+                paymentType: entry.paymentType,
+                actions: entry.actions || [],
+                otherActions: entry.otherActions || "",
+                description: entry.description || "",
+              });
+              setOriginalIdentifiers({
+                date: entry.date,
+                patientName: entry.patientName,
+                medicalRecordNumber: entry.medicalRecordNumber,
+              });
+            } else {
+              toast({ title: "Error", description: "Data yang ingin diedit tidak ditemukan", variant: "destructive" });
+              navigate("/data-harian");
+            }
           } else {
-            toast({ title: "Error", description: "Data yang ingin diedit tidak ditemukan", variant: "destructive" });
+            toast({ title: "Error", description: "Format data tidak valid", variant: "destructive" });
             navigate("/data-harian");
           }
         })
-        .catch((err) => {
-          toast({ title: "Error", description: "Gagal mengambil data untuk edit: " + (err?.message || err), variant: "destructive" });
+        .catch(() => {
+          toast({ title: "Error", description: "Gagal mengambil data untuk edit", variant: "destructive" });
           navigate("/data-harian");
         });
     }
@@ -184,7 +190,7 @@ export default function DataHarian() {
       // API request
       if (isEditMode && originalIdentifiers) {
         promises.push(
-          apiRequest("PUT", `/api/data-entries/${searchParams.get("edit")}`, data).then(res => res.json())
+          apiRequest("PUT", `/api/data-entries/${searchParams.get("edit")}` , data).then(res => res.json())
         );
       } else {
         promises.push(
