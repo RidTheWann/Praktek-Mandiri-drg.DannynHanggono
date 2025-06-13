@@ -37,6 +37,21 @@ export const combinedStorage = {
   // Update entry in both database and Google Sheets
   async updateDataEntry(id: number, entry: any) {
     try {
+      // Get the original entry to use as identifier for Google Sheets
+      const entries = await getAllEntries();
+      const originalEntry = entries.find(e => e.id === id);
+      
+      if (!originalEntry) {
+        return null;
+      }
+      
+      // Add original identifiers to entry for Google Sheets
+      entry.originalIdentifiers = {
+        date: originalEntry.date,
+        patientName: originalEntry.patientName,
+        medicalRecordNumber: originalEntry.medicalRecordNumber
+      };
+      
       // First update in database
       const updatedEntry = await updateEntry(id, entry);
       
@@ -45,7 +60,7 @@ export const combinedStorage = {
       }
       
       // Then sync to Google Sheets
-      await submitToGoogleSheets(entry, true, id);
+      await submitToGoogleSheets(entry, true);
       
       return updatedEntry;
     } catch (error) {

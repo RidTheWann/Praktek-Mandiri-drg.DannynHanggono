@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
+import { Analytics } from "@vercel/analytics/react";
 
 import { Navigation } from "@/components/navigation";
 import Home from "@/pages/home";
@@ -40,6 +41,7 @@ function App() {
             <Navigation />
             <Router />
             <Toaster />
+            <Analytics />
           </div>
         </TooltipProvider>
       </ThemeProvider>
