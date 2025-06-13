@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Migrate data_entries table to use auto-incrementing ID",
+			"command": "psql \"$DATABASE_URL\" -c \"ALTER TABLE data_entries ALTER COLUMN id DROP DEFAULT; ALTER TABLE data_entries ALTER COLUMN id TYPE BIGSERIAL USING id::bigint; ALTER TABLE data_entries ALTER COLUMN id SET NOT NULL;\"",
+			"group": "build"
+		}
+	]
+}
