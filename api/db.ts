@@ -13,7 +13,7 @@ export async function initDatabase() {
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS data_entries (
-        id BIGINT PRIMARY KEY,
+        id BIGSERIAL PRIMARY KEY,
         date DATE NOT NULL,
         patient_name TEXT NOT NULL,
         medical_record_number TEXT NOT NULL,

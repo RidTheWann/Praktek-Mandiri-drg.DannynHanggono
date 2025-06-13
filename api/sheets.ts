@@ -41,8 +41,8 @@ export async function submitToGoogleSheets(data: any, isUpdate = false, id?: num
     });
     
     // Add update info if needed
-    if (isUpdate && id) {
-      mappedFormObject["id"] = id.toString();
+    if (isUpdate && data.id) {
+      mappedFormObject["id"] = data.id.toString();
       mappedFormObject["action"] = "update";
     }
     

@@ -25,7 +25,7 @@ export const combinedStorage = {
       const newEntry = await addEntry(entry);
       
       // Then sync to Google Sheets
-      await submitToGoogleSheets(entry);
+      await submitToGoogleSheets(newEntry);
       
       return newEntry;
     } catch (error) {
